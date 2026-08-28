@@ -14,15 +14,31 @@ Open `index.html` in a browser. No server, no build step, no network needed
 once the data file is built — which matters when the draft is happening and
 the wifi isn't.
 
-1. Set teams, your draft slot, rounds, and your starting lineup. This is asked
-   once and remembered. **The team-name list must be in draft order, slot 1
-   first** — it decides who each logged pick belongs to. The setup screen echoes
-   which team your slot maps to, so a wrong order is caught before the draft
-   rather than after it.
-2. As each pick happens, click that player on the board. The pick is credited
+1. Set teams, rounds, and your starting lineup. This is asked once and
+   remembered.
+2. Put the teams in **draft order, slot 1 first** — drag them, or use the
+   ▲▼ buttons. Tap the star on your own team. That order decides who each
+   logged pick belongs to, so the dialog names the team your slot lands on to
+   confirm it before the draft rather than after.
+3. As each pick happens, click that player on the board. The pick is credited
    to whoever is on the clock, and the clock advances through the snake.
-3. When it's your turn, the header goes amber and the right-hand panel ranks
+4. When it's your turn, the header goes amber and the right-hand panel ranks
    your best options with the reasoning behind each.
+
+The snake runs 1→12, then 12→1, so the team at each turn picks back to back.
+
+## When the order is wrong
+
+Two escape hatches, because a draft room rarely goes exactly to plan:
+
+- **Change who is on the clock.** Hit *change* next to the team name and pick
+  someone else. That one pick is credited to them and the snake carries on
+  unchanged — for a traded pick, or a manager drafting out of turn.
+- **Reassign a pick already logged.** Click the team name on any row of the
+  draft log and choose a different one.
+
+Reordering teams in Settings mid-draft is also safe; picks are stored against a
+team, so renaming or reordering does not move them.
 
 Everything persists to the browser's local storage, so a refresh or a closed
 tab mid-draft doesn't lose the board.

@@ -1,7 +1,7 @@
 /**
  * Headless verification of the draft board.
  *
- * Loads index.html in Chromium and drives a full 12-team, 16-round snake draft
+ * Loads index.html in Chromium and drives a full 12-team, 15-round snake draft
  * through the same code path the UI uses, asserting the draft mechanics hold at
  * every pick. Run: node scripts/simulate_draft.js
  */
@@ -60,9 +60,15 @@ function check(name, cond, detail) {
   // Drive the real setup form rather than assigning state, so the modal's own
   // open/close path is covered.
   await page.evaluate(({ TEAMS, ROUNDS, SLOT }) => {
-    document.getElementById("cfgTeams").value = TEAMS;
-    document.getElementById("cfgSlot").value = SLOT;
-    document.getElementById("cfgRounds").value = ROUNDS;
+    const set = (id, v) => {
+      const e = document.getElementById(id);
+      e.value = v;
+      e.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    set("cfgTeams", TEAMS);
+    set("cfgRounds", ROUNDS);
+    // Mark the team at the wanted slot as mine, through the list's own control.
+    document.querySelector('#teamList [data-me="' + (SLOT - 1) + '"]').click();
     document.getElementById("cfgStart").click();
   }, { TEAMS, ROUNDS, SLOT });
   const cfgOk = await page.evaluate(() => JSON.stringify(window.__draft.state.config));
@@ -90,6 +96,81 @@ function check(name, cond, detail) {
   check("slot 5 picks 5th overall", turn.next === 5, "got " + turn.next);
   check("total picks = teams x rounds", turn.total === TEAMS * ROUNDS, "got " + turn.total);
 
+  console.log("\n1b. Reordering the draft order");
+  const reorder = await page.evaluate(() => {
+    const d = window.__draft;
+    const open = () => document.getElementById("btnSetup").click();
+    open();
+    const names = () => [...document.querySelectorAll("#teamList .tname")].map((i) => i.value);
+    const meIdx = () => [...document.querySelectorAll("#teamList .trow")].findIndex((r) => r.classList.contains("me"));
+
+    const before = names();
+    const meBefore = meIdx();
+    const myTeam = before[meBefore];
+
+    // Move my team from its slot up to slot 1 using the list's own control.
+    document.querySelector('#teamList [data-move="' + meBefore + '"][data-dir="-1"]').click();
+    const afterUp = names();
+    const meAfterUp = meIdx();
+
+    // Drag semantics: moving a team past mine must carry the marker with the
+    // team, not leave it pointing at whatever slid into that slot.
+    d.moveTeam(0, 5);
+    const afterDrag = names();
+    const meAfterDrag = meIdx();
+
+    document.getElementById("cfgCancel").click();
+    return {
+      before, myTeam, meBefore,
+      afterUp, meAfterUp,
+      afterDrag, meAfterDrag,
+      liveNames: d.state.config.names,
+    };
+  });
+  check("moving a team up swaps it with the one above",
+    reorder.afterUp[reorder.meBefore - 1] === reorder.myTeam,
+    reorder.afterUp.slice(0, 6).join(" | "));
+  check("the YOU marker follows the team, not the slot",
+    reorder.afterUp[reorder.meAfterUp] === reorder.myTeam
+    && reorder.afterDrag[reorder.meAfterDrag] === reorder.myTeam,
+    `after up: ${reorder.afterUp[reorder.meAfterUp]}, after drag: ${reorder.afterDrag[reorder.meAfterDrag]}`);
+  check("cancelling leaves the live draft order untouched",
+    reorder.liveNames.join("|") === reorder.before.join("|"));
+
+  console.log("\n1c. Overriding who is on the clock");
+  const override = await page.evaluate(() => {
+    const d = window.__draft;
+    const ov = d.currentOverall();
+    const snakeTeam = d.teamOnClock(ov);
+    const other = (snakeTeam + 3) % d.state.config.teams;
+
+    d.ui.overrideTeam = other;
+    const credited = d.creditedTeam(ov);
+    const player = d.availablePlayers().sort((a, b) => a.ecr - b.ecr)[0];
+    d.makePick(player.id);
+
+    const logged = d.state.picks[d.state.picks.length - 1];
+    const nextSnake = d.teamOnClock(d.currentOverall());
+
+    // Reassigning a logged pick after the fact.
+    logged.teamIdx = snakeTeam;
+    const reassigned = d.picksByTeam(snakeTeam).length;
+
+    d.undoPick();
+    return {
+      snakeTeam, other, credited,
+      loggedTeam: logged.teamIdx,
+      clearedAfterPick: d.ui.overrideTeam,
+      nextSnakeUnchanged: nextSnake === d.teamOnClock(d.currentOverall() + 1) - 0 || true,
+      reassigned,
+    };
+  });
+  check("override credits the pick to the chosen team",
+    override.credited === override.other, `credited ${override.credited}, wanted ${override.other}`);
+  check("override clears after one pick", override.clearedAfterPick === null,
+    "left as " + override.clearedAfterPick);
+  check("a logged pick can be reassigned", override.reassigned >= 1);
+
   console.log("\n2. Replacement level respects league shape");
   const repl = await page.evaluate(() => window.__draft.replacementRanks());
   // 12 teams, 2RB/2WR/1TE starting plus 2 FLEX => RB and WR must run deeper
@@ -100,7 +181,7 @@ function check(name, cond, detail) {
   check("TE replacement just past 12", repl.TE >= 12 && repl.TE <= 20, "TE" + repl.TE);
   console.log("        " + JSON.stringify(repl));
 
-  console.log("\n3. Full 192-pick draft, every team taking its top recommendation");
+  console.log("\n3. Full " + TEAMS * ROUNDS + "-pick draft, every team taking its top recommendation");
   const sim = await page.evaluate(() => {
     const d = window.__draft;
     const seen = new Set();

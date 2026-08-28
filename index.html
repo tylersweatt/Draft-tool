@@ -254,6 +254,53 @@ tr.gone .pname{text-decoration:line-through}
 .teamcard li{font-size:11.5px;display:flex;gap:6px;align-items:baseline}
 .teamcard li span.pos{font-family:var(--f-mono);font-size:9.5px;width:26px;flex:none;color:var(--ink-mute)}
 
+/* ---------- draft order editor ---------- */
+.teamlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;
+  max-height:300px;overflow-y:auto}
+.trow{
+  display:flex;align-items:center;gap:6px;padding:5px 7px;
+  background:var(--ground);border:1px solid var(--hairline);border-radius:var(--r);
+}
+.trow.me{border-color:var(--accent);background:rgba(240,168,48,.07)}
+.trow.dragging{opacity:.4}
+.trow.dropinto{border-color:var(--accent);border-style:dashed}
+.tgrip{cursor:grab;color:var(--ink-mute);font-size:13px;line-height:1;padding:0 2px;flex:none;
+  touch-action:none}
+.tnum{font-family:var(--f-mono);font-size:11px;color:var(--ink-mute);width:20px;flex:none;text-align:right}
+.tname{flex:1;min-width:0;background:transparent;border:none;padding:3px 4px;font-size:13px;border-radius:3px}
+.tname:focus{background:var(--panel);outline:1px solid var(--hairline)}
+.tme{
+  flex:none;font-size:12px;line-height:1;padding:4px 7px;border-radius:3px;
+  border:1px solid var(--hairline);color:var(--ink-mute);background:var(--panel);
+}
+.trow.me .tme{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.tmove{display:flex;gap:2px;flex:none}
+.tmove button{
+  border:1px solid var(--hairline);background:var(--panel);color:var(--ink-mute);
+  border-radius:3px;padding:3px 6px;font-size:10px;line-height:1;
+}
+.tmove button:hover:not(:disabled){color:var(--ink);background:var(--raised)}
+.tmove button:disabled{opacity:.3;cursor:not-allowed}
+.orderhint{font-size:11.5px;color:var(--ink-mute);margin:7px 0 0}
+
+/* ---------- on-the-clock override ---------- */
+.clock-edit{
+  border:1px solid transparent;border-radius:var(--r);padding:2px 6px;
+  font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);
+}
+.clock-edit:hover{color:var(--ink);border-color:var(--hairline)}
+.clock-pick{
+  background:var(--ground);border:1px solid var(--accent);border-radius:var(--r);
+  padding:5px 8px;font-size:13px;max-width:190px;
+}
+.overridden{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
+.log-team-btn{
+  background:none;border:1px solid transparent;border-radius:3px;padding:1px 4px;
+  font-size:11.5px;color:var(--ink-mute);width:96px;flex:none;text-align:left;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.log-team-btn:hover{color:var(--ink);border-color:var(--hairline)}
+
 /* ---------- setup ---------- */
 .setup-back{position:fixed;inset:0;background:rgba(8,12,15,.86);z-index:100;display:flex;align-items:center;justify-content:center;padding:18px;overflow-y:auto}
 .setup{background:var(--panel);border:1px solid var(--hairline);border-radius:10px;max-width:520px;width:100%;padding:22px}
@@ -365,11 +412,12 @@ tr.gone .pname{text-decoration:line-through}
     <div class="grid2">
       <div class="fld"><label for="cfgTeams">Teams</label>
         <input id="cfgTeams" type="number" min="4" max="20" value="12"></div>
-      <div class="fld"><label for="cfgSlot">Your draft slot</label>
-        <input id="cfgSlot" type="number" min="1" max="20" value="1"></div>
+      <div class="fld"><label for="cfgRounds">Rounds</label>
+        <input id="cfgRounds" type="number" min="1" max="30" value="15"></div>
     </div>
-    <div class="fld"><label for="cfgRounds">Rounds</label>
-      <input id="cfgRounds" type="number" min="1" max="30" value="16"></div>
+    <div class="fld"><label>Draft order — slot 1 first</label>
+      <ol class="teamlist" id="teamList"></ol>
+      <p class="orderhint" id="orderHint"></p></div>
     <div class="fld"><label>Starting lineup</label>
       <div class="grid4 slotrow" id="cfgSlots"></div></div>
     <div class="fld"><label for="cfgPassTd">Points per passing touchdown</label>
@@ -377,9 +425,7 @@ tr.gone .pname{text-decoration:line-through}
         <option value="4">4 (Yahoo default)</option>
         <option value="6">6</option>
       </select></div>
-    <div class="fld"><label for="cfgNames">Teams in draft order — slot 1 first</label>
-      <input id="cfgNames" type="text" placeholder="Ty, Marcus, Dan, …">
-      <p class="adp-status" id="slotEcho"></p></div>
+
     <div class="fld"><label for="cfgAdp">Yahoo ADP (optional — paste your league's draft board)</label>
       <textarea id="cfgAdp" rows="3" placeholder="Paste Yahoo&#39;s Draft Analysis table &#8212; 1  Ja&#39;Marr Chase Cin - WR  1.3  1.0  100%"></textarea>
       <p class="adp-status" id="adpStatus"></p></div>
@@ -467,6 +513,19 @@ function picksRemainingFor(teamIdx){
 }
 function myNextOverall(){
   return nextPickFor(myTeamIdx(), currentOverall());
+}
+/* Who this pick is credited to. Normally the snake decides, but the order can
+   be wrong or a pick can be traded, so it may be overridden for one pick. */
+function creditedTeam(ov){
+  return ui.overrideTeam == null ? teamOnClock(ov) : ui.overrideTeam;
+}
+function teamOptions(selected){
+  var out = "";
+  for(var i = 0; i < state.config.teams; i++){
+    out += '<option value="' + i + '"' + (i === selected ? " selected" : "") + '>'
+      + esc(teamName(i)) + '</option>';
+  }
+  return out;
 }
 function draftedIds(){
   var s = {};
@@ -916,7 +975,7 @@ function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 
-var ui = { pos:"ALL", q:"", sort:"ecr", tab:"log" };
+var ui = { pos:"ALL", q:"", sort:"ecr", tab:"log", overrideTeam:null, picking:false };
 
 function availablePlayers(){
   var d = draftedIds();
@@ -936,7 +995,7 @@ function renderClock(){
       + '<button class="btn" id="btnReset">New draft</button></div>';
     wireClock(); return;
   }
-  var team = teamOnClock(ov);
+  var team = creditedTeam(ov);
   var mine = team === myTeamIdx();
   var myNext = myNextOverall();
   var until = myNext ? myNext - ov : null;
@@ -955,8 +1014,13 @@ function renderClock(){
     + '</div>'
     + '<div class="onclock">'
       + '<span class="onclock-lbl">On the clock</span>'
-      + '<span class="onclock-team">' + esc(teamName(team)) + '</span>'
-      + (mine ? '<span class="youbadge">You</span>' : '')
+      + (ui.picking
+          ? '<select class="clock-pick" id="clockPick" aria-label="Who is picking">'
+              + teamOptions(team) + '</select>'
+          : '<span class="onclock-team">' + esc(teamName(team)) + '</span>'
+            + (mine ? '<span class="youbadge">You</span>' : '')
+            + '<button class="clock-edit" id="btnWho">change</button>'
+            + (ui.overrideTeam != null ? '<span class="overridden">overridden</span>' : ''))
     + '</div>'
     + nextTxt
     + '<div class="clock-actions">'
@@ -968,6 +1032,18 @@ function renderClock(){
 }
 function wireClock(){
   var u = el("btnUndo"), e = el("btnExport"), s = el("btnSetup"), r = el("btnReset");
+  var w = el("btnWho"), sel = el("clockPick");
+  if(w) w.onclick = function(){ ui.picking = true; renderClock(); var p = el("clockPick"); if(p) p.focus(); };
+  if(sel){
+    sel.onchange = function(){
+      var v = parseInt(sel.value, 10);
+      /* Only remember it as an override if it differs from the snake. */
+      ui.overrideTeam = (v === teamOnClock(currentOverall())) ? null : v;
+      ui.picking = false;
+      renderAll();
+    };
+    sel.onblur = function(){ ui.picking = false; renderClock(); };
+  }
   if(u) u.onclick = undoPick;
   if(e) e.onclick = exportDraft;
   if(s) s.onclick = function(){ openSetup(true); };
@@ -1144,7 +1220,8 @@ function renderLog(){
       var isLast = idx === 0;
       return '<div class="logrow' + (pk.teamIdx === myTeamIdx() ? " mine" : "") + '">'
         + '<span class="log-pk">' + roundOf(pk.overall) + "." + pad2(pickInRound(pk.overall)) + '</span>'
-        + '<span class="log-team">' + esc(teamName(pk.teamIdx)) + '</span>'
+        + '<button class="log-team-btn" data-reassign="' + pk.overall + '" '
+          + 'title="Credit this pick to a different team">' + esc(teamName(pk.teamIdx)) + '</button>'
         + '<span>' + esc(p ? p.name : "?") + '</span>'
         + (p ? '<span class="chip chip-' + p.pos + '">' + p.pos + '</span>' : "")
         + (isLast ? '<button class="log-undo" data-undo="1">undo</button>' : "")
@@ -1188,9 +1265,25 @@ function makePick(playerId){
   if(ov > totalPicks()) return;
   if(!BY_ID[playerId]) return;
   if(draftedIds()[playerId]) return;
-  state.picks.push({ overall:ov, teamIdx:teamOnClock(ov), playerId:playerId });
+  state.picks.push({ overall:ov, teamIdx:creditedTeam(ov), playerId:playerId });
+  ui.overrideTeam = null; ui.picking = false;
   ui.q = ""; el("search").value = "";
   save(); renderAll();
+}
+/* Swap a logged pick's team in place, for when the order was entered wrong or
+   a pick changed hands mid-draft. */
+function startReassign(btn){
+  var ov = parseInt(btn.getAttribute("data-reassign"), 10);
+  var pick = null;
+  for(var i = 0; i < state.picks.length; i++) if(state.picks[i].overall === ov) pick = state.picks[i];
+  if(!pick) return;
+  var sel = document.createElement("select");
+  sel.className = "clock-pick";
+  sel.innerHTML = teamOptions(pick.teamIdx);
+  sel.onchange = function(){ pick.teamIdx = parseInt(sel.value, 10); save(); renderAll(); };
+  sel.onblur = function(){ renderLog(); };
+  btn.replaceWith(sel);
+  sel.focus();
 }
 function undoPick(){
   if(!state.picks.length) return;
@@ -1215,33 +1308,113 @@ function exportDraft(){
   }, function(){ window.prompt("Copy your draft:", txt); });
 }
 
+/* ---------------- draft order editor ---------------- */
+/* Held separately from state while the dialog is open, so a cancel leaves the
+   live draft untouched. */
+var setupOrder = [], setupMe = 0;
+
+function renderTeamList(){
+  var list = el("teamList");
+  list.innerHTML = setupOrder.map(function(name, i){
+    return '<li class="trow' + (i === setupMe ? " me" : "") + '" draggable="true" data-i="' + i + '">'
+      + '<span class="tgrip" aria-hidden="true">\u2630</span>'
+      + '<span class="tnum">' + (i+1) + '</span>'
+      + '<input class="tname" data-i="' + i + '" value="' + esc(name) + '" aria-label="Team at slot ' + (i+1) + '">'
+      + '<button class="tme" data-me="' + i + '" title="Mark as your team" aria-pressed="'
+        + (i === setupMe) + '">' + (i === setupMe ? "YOU" : "\u2606") + '</button>'
+      + '<span class="tmove">'
+        + '<button data-move="' + i + '" data-dir="-1" aria-label="Move up"' + (i === 0 ? " disabled" : "") + '>\u25b2</button>'
+        + '<button data-move="' + i + '" data-dir="1" aria-label="Move down"' + (i === setupOrder.length-1 ? " disabled" : "") + '>\u25bc</button>'
+      + '</span></li>';
+  }).join("");
+  /* The marked team is often below the scroll fold, so bring it into view —
+     otherwise marking it looks like nothing happened. */
+  var meRow = list.children[setupMe];
+  if(meRow && meRow.scrollIntoView) meRow.scrollIntoView({ block:"nearest" });
+
+  var me = setupOrder[setupMe];
+  el("orderHint").innerHTML = me
+    ? "Drag or use \u25b2\u25bc to reorder. You pick at slot <b>" + (setupMe+1) + "</b> as \u201c" + esc(me) + "\u201d."
+    : "Mark your team with the star.";
+}
+
+function resizeTeamList(n){
+  while(setupOrder.length < n) setupOrder.push("Team " + (setupOrder.length + 1));
+  if(setupOrder.length > n) setupOrder = setupOrder.slice(0, n);
+  if(setupMe >= setupOrder.length) setupMe = setupOrder.length - 1;
+  renderTeamList();
+}
+
+function moveTeam(from, to){
+  if(to < 0 || to >= setupOrder.length || from === to) return;
+  var item = setupOrder.splice(from, 1)[0];
+  setupOrder.splice(to, 0, item);
+  /* The star follows the team it was on, not the slot number. */
+  if(setupMe === from) setupMe = to;
+  else if(from < setupMe && to >= setupMe) setupMe--;
+  else if(from > setupMe && to <= setupMe) setupMe++;
+  renderTeamList();
+}
+
+function bindTeamList(){
+  var list = el("teamList");
+
+  list.addEventListener("click", function(e){
+    var mv = e.target.closest("[data-move]");
+    if(mv){
+      var i = parseInt(mv.getAttribute("data-move"), 10);
+      moveTeam(i, i + parseInt(mv.getAttribute("data-dir"), 10));
+      return;
+    }
+    var me = e.target.closest("[data-me]");
+    if(me){ setupMe = parseInt(me.getAttribute("data-me"), 10); renderTeamList(); }
+  });
+
+  list.addEventListener("input", function(e){
+    if(e.target.classList.contains("tname")){
+      setupOrder[parseInt(e.target.getAttribute("data-i"), 10)] = e.target.value;
+      var me = setupOrder[setupMe];
+      el("orderHint").innerHTML = "Drag or use \u25b2\u25bc to reorder. You pick at slot <b>"
+        + (setupMe+1) + "</b> as \u201c" + esc(me || "") + "\u201d.";
+    }
+  });
+
+  var dragFrom = null;
+  list.addEventListener("dragstart", function(e){
+    var row = e.target.closest(".trow");
+    if(!row) return;
+    dragFrom = parseInt(row.getAttribute("data-i"), 10);
+    row.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+    /* Firefox will not start a drag without payload. */
+    try{ e.dataTransfer.setData("text/plain", String(dragFrom)); }catch(err){}
+  });
+  list.addEventListener("dragover", function(e){
+    e.preventDefault();
+    var row = e.target.closest(".trow");
+    Array.prototype.forEach.call(list.children, function(c){ c.classList.remove("dropinto"); });
+    if(row) row.classList.add("dropinto");
+  });
+  list.addEventListener("drop", function(e){
+    e.preventDefault();
+    var row = e.target.closest(".trow");
+    if(row && dragFrom !== null) moveTeam(dragFrom, parseInt(row.getAttribute("data-i"), 10));
+    dragFrom = null;
+  });
+  list.addEventListener("dragend", function(){
+    dragFrom = null;
+    Array.prototype.forEach.call(list.children, function(c){
+      c.classList.remove("dragging"); c.classList.remove("dropinto");
+    });
+  });
+}
+
 /* ---------------- setup ---------------- */
 function renderSlotInputs(slots){
   el("cfgSlots").innerHTML = ["QB","RB","WR","TE","FLEX","K","DST"].map(function(k){
     return '<div><label for="slot_' + k + '">' + k + '</label>'
       + '<input id="slot_' + k + '" type="number" min="0" max="6" value="' + (slots[k]||0) + '"></div>';
   }).join("");
-}
-/* Team order decides who every logged pick belongs to, so show the mapping
-   while it is being entered rather than after the draft has gone wrong. */
-function updateSlotEcho(){
-  var e = el("slotEcho");
-  if(!e) return;
-  var names = el("cfgNames").value.split(",").map(function(x){ return x.trim(); })
-    .filter(function(x){ return x; });
-  var teams = parseInt(el("cfgTeams").value, 10) || 0;
-  var slot = parseInt(el("cfgSlot").value, 10) || 0;
-  if(!names.length){ e.textContent = ""; e.className = "adp-status"; return; }
-  if(names.length !== teams){
-    e.textContent = names.length + " names for " + teams + " teams.";
-    e.className = "adp-status bad";
-    return;
-  }
-  var mine = names[slot - 1];
-  e.textContent = mine
-    ? "Slot " + slot + " is \u201c" + mine + "\u201d \u2014 that should be your team."
-    : "Slot " + slot + " is outside the league.";
-  e.className = "adp-status" + (mine ? " ok" : " bad");
 }
 function setAdpStatus(msg, cls){
   var e = el("adpStatus");
@@ -1251,9 +1424,11 @@ function setAdpStatus(msg, cls){
 function openSetup(isEdit){
   var c = state ? state.config : defaultConfig();
   el("cfgTeams").value = c.teams;
-  el("cfgSlot").value = c.slot;
   el("cfgRounds").value = c.rounds;
-  el("cfgNames").value = (c.names||[]).join(", ");
+  setupOrder = (c.names || []).slice(0, c.teams);
+  while(setupOrder.length < c.teams) setupOrder.push("Team " + (setupOrder.length + 1));
+  setupMe = Math.max(0, Math.min(c.slot - 1, setupOrder.length - 1));
+  renderTeamList();
   el("cfgPassTd").value = String(c.passTd || 4);
   el("cfgAdp").value = "";
   var have = Object.keys(c.adp || {}).length;
@@ -1264,7 +1439,6 @@ function openSetup(isEdit){
     : "Set your league up once, then log every pick as it happens.";
   el("setupData").innerHTML = "Rankings scraped <b>" + esc(DATA.meta.scrapeDate)
     + "</b> · " + DATA.meta.playerCount + " players · " + DATA.meta.season + " season.";
-  updateSlotEcho();
   el("cfgCancel").hidden = !isEdit;
   el("setupBack").hidden = false;
   el("cfgTeams").focus();
@@ -1272,13 +1446,14 @@ function openSetup(isEdit){
 function closeSetup(){ el("setupBack").hidden = true; el("search").focus(); }
 function applySetup(){
   var teams = Math.max(4, Math.min(20, parseInt(el("cfgTeams").value,10) || 12));
-  var slot  = Math.max(1, Math.min(teams, parseInt(el("cfgSlot").value,10) || 1));
-  var rounds= Math.max(1, Math.min(30, parseInt(el("cfgRounds").value,10) || 16));
+  if(setupOrder.length !== teams) resizeTeamList(teams);
+  var slot  = Math.max(1, Math.min(teams, setupMe + 1));
+  var rounds= Math.max(1, Math.min(30, parseInt(el("cfgRounds").value,10) || 15));
   var slots = {};
   ["QB","RB","WR","TE","FLEX","K","DST"].forEach(function(k){
     slots[k] = Math.max(0, Math.min(6, parseInt(el("slot_"+k).value,10) || 0));
   });
-  var names = el("cfgNames").value.split(",").map(function(s){ return s.trim(); });
+  var names = setupOrder.map(function(n, i){ return (n || "").trim() || ("Team " + (i+1)); });
   var passTd = parseInt(el("cfgPassTd").value, 10) === 6 ? 6 : 4;
 
   if(!state) state = { config: defaultConfig(), picks: [] };
@@ -1318,7 +1493,9 @@ function bind(){
     if(r) makePick(r.getAttribute("data-id"));
   });
   el("paneLog").addEventListener("click", function(e){
-    if(e.target.matches("[data-undo]")) undoPick();
+    if(e.target.matches("[data-undo]")){ undoPick(); return; }
+    var rb = e.target.closest("[data-reassign]");
+    if(rb) startReassign(rb);
   });
 
   var search = el("search");
@@ -1348,8 +1525,10 @@ function bind(){
   el("tabLog").onclick = function(){ setTab("log"); };
   el("tabTeams").onclick = function(){ setTab("teams"); };
 
-  ["cfgNames","cfgSlot","cfgTeams"].forEach(function(id){
-    el(id).addEventListener("input", updateSlotEcho);
+  bindTeamList();
+  el("cfgTeams").addEventListener("input", function(){
+    var n = parseInt(el("cfgTeams").value, 10);
+    if(n >= 4 && n <= 20) resizeTeamList(n);
   });
   el("cfgStart").onclick = applySetup;
   el("cfgCancel").onclick = closeSetup;
@@ -1394,6 +1573,8 @@ window.__draft = {
   applyAdp: applyAdp, matchName: matchName, projOf: projOf, curveFor: curveFor,
   adpOf: adpOf, calibratedPick: calibratedPick, expectedPick: expectedPick,
   isotonic: isotonic, adpAnchors: adpAnchors,
+  moveTeam: moveTeam, renderTeamList: renderTeamList, creditedTeam: creditedTeam, ui: ui,
+  get setupOrder(){ return setupOrder; }, get setupMe(){ return setupMe; },
   totalPicks: totalPicks, picksByTeam: picksByTeam, projAtRank: projAtRank
 };
 

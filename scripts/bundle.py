@@ -6,10 +6,11 @@ index.html loads data/players.js as a separate script, which is right for local
 use. For publishing or handing the file to someone else, everything has to
 travel in a single document. Emits dist/draft-board.html.
 
-Run:  python3 scripts/bundle.py [--fragment]
+Run:  python3 scripts/bundle.py [--fragment] [-o PATH]
 
 --fragment strips the document wrapper (doctype/html/head/body), for hosts that
-supply their own shell.
+supply their own shell. -o writes somewhere other than dist/draft-board.html,
+so a fragment build does not overwrite the standalone one.
 """
 
 import os
@@ -48,8 +49,12 @@ def main():
         inner = re.sub(r'<meta[^>]*>\s*', "", inner)
         html = inner + "\n" + body.group(1).strip() + "\n"
 
-    os.makedirs(OUT_DIR, exist_ok=True)
-    out = os.path.join(OUT_DIR, "draft-board.html")
+    if "-o" in sys.argv:
+        out = sys.argv[sys.argv.index("-o") + 1]
+        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    else:
+        os.makedirs(OUT_DIR, exist_ok=True)
+        out = os.path.join(OUT_DIR, "draft-board.html")
     with open(out, "w") as f:
         f.write(html)
 

@@ -266,18 +266,58 @@ function check(name, cond, detail) {
   check("looser paste shapes still parse", adp.loose.n === 2 && adp.loose.nacua === 3.5,
     JSON.stringify(adp.loose));
 
+  const calib = await page.evaluate(() => {
+    const d = window.__draft;
+    const P = window.PLAYER_DATA.players;
+    const find = (n) => P.find((p) => p.name === n);
+    const measured = P.filter((p) => p.adp).length;
+
+    // Someone in the band the screenshots did not cover.
+    const gap = P.find((p) => !p.adp && p.ecr > 35 && p.ecr < 75);
+
+    // The calibration itself must be non-decreasing down the board, even though
+    // the measured values it is fitted to are not.
+    const byEcr = P.slice().sort((a, b) => a.ecr - b.ecr);
+    const fit = byEcr.map((p) => d.calibratedPick(p));
+    const monotonic = fit.every((v, i) => i === 0 || fit[i - 1] <= v + 1e-9);
+
+    const raw = [];
+    P.forEach((p) => { if (p.adp) raw.push([p.ecr, p.adp]); });
+    raw.sort((a, b) => a[0] - b[0]);
+    const rawMonotonic = raw.every((v, i) => i === 0 || raw[i - 1][1] <= v[1]);
+
+    return {
+      measured, rawMonotonic, monotonic,
+      gibbs: d.adpOf(find("Jahmyr Gibbs")),
+      gapName: gap && gap.name, gapEcr: gap && gap.ecr,
+      gapEst: gap && d.calibratedPick(gap),
+    };
+  });
+
+  check("Yahoo ADP shipped with the dataset", calib.measured >= 70, calib.measured + " players");
+  check("measured ADP is used verbatim", calib.gibbs === 1.4, "Gibbs " + calib.gibbs);
+  // Worth asserting: if the raw anchors were already monotone the isotonic fit
+  // would be doing nothing, and this test would prove nothing.
+  check("raw anchors really are non-monotone", calib.rawMonotonic === false);
+  check("calibration is monotone down the board", calib.monotonic === true);
+  check("players in the uncovered band land inside it",
+    calib.gapEst > 16.2 && calib.gapEst < 95.5,
+    `${calib.gapName} ecr ${calib.gapEcr} -> ${calib.gapEst && calib.gapEst.toFixed(1)}`);
+  console.log(`        ${calib.gapName}: consensus rank ${calib.gapEcr} -> estimated Yahoo pick `
+    + `${calib.gapEst.toFixed(1)}`);
+
   const surv = await page.evaluate(() => {
     const d = window.__draft;
     const p = window.PLAYER_DATA.players.find((x) => x.name === "Ja'Marr Chase");
     d.state.config.adp = {};
-    const noAdp = d.survival(p, 20);
+    const shipped = d.survival(p, 20);          // uses the dataset's 3.4
     d.state.config.adp = {};
-    d.state.config.adp[p.id] = 40;   // Yahoo has him going later than consensus
-    const withAdp = d.survival(p, 20);
+    d.state.config.adp[p.id] = 40;              // a paste must override it
+    const pasted = d.survival(p, 20);
     d.state.config.adp = {};
-    return { noAdp, withAdp };
+    return { noAdp: shipped, withAdp: pasted };
   });
-  check("imported ADP moves the survival estimate", surv.withAdp > surv.noAdp,
+  check("a pasted ADP overrides the shipped one", surv.withAdp > surv.noAdp,
     `${Math.round(surv.noAdp * 100)}% -> ${Math.round(surv.withAdp * 100)}%`);
 
   console.log("\n6. Undo and persistence");

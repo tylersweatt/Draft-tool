@@ -496,9 +496,79 @@ function projOf(p){
   if(p.pos === "QB") return projAtRank("QB", p.posRank);
   return p.proj;
 }
+/* A pasted ADP wins, then whatever shipped in the dataset. */
 function adpOf(p){
   var a = state && state.config && state.config.adp;
-  return (a && a[p.id]) || null;
+  return (a && a[p.id]) || p.adp || null;
+}
+
+/* ADP coverage is partial, and mixing measured picks with consensus ranks would
+   put two different scales in one column. Instead, calibrate: fit consensus rank
+   onto the Yahoo pick scale using every player who has both, then read the
+   missing players off that fit. Anchors are (ecr, adp) pairs sorted by ecr. */
+var _anchors = null, _anchorSig = "";
+function adpAnchors(){
+  var sig = String(PLAYERS.length) + "|"
+    + Object.keys((state && state.config && state.config.adp) || {}).length;
+  if(sig === _anchorSig) return _anchors;
+  var pts = [];
+  PLAYERS.forEach(function(p){
+    var a = adpOf(p);
+    if(a) pts.push([p.ecr, a]);
+  });
+  pts.sort(function(x, y){ return x[0] - y[0]; });
+  _anchors = isotonic(pts); _anchorSig = sig;
+  return _anchors;
+}
+
+/* Yahoo and the consensus board genuinely disagree — Jeanty is consensus RB26
+   but a Yahoo top-16 pick — so the raw anchors are not monotone, and
+   interpolating straight through them yields a mapping that can run backwards.
+   Pool adjacent violators to get the closest non-decreasing fit. */
+function isotonic(pts){
+  var ys = [], ws = [], xs = [];
+  for(var i = 0; i < pts.length; i++){
+    var y = pts[i][1], w = 1;
+    xs.push(pts[i][0]);
+    while(ys.length && ys[ys.length-1] > y){
+      var py = ys.pop(), pw = ws.pop();
+      y = (y * w + py * pw) / (w + pw);
+      w = w + pw;
+    }
+    ys.push(y); ws.push(w);
+  }
+  // Expand the pooled blocks back out to one value per input point.
+  var out = [], k = 0;
+  for(var b = 0; b < ys.length; b++){
+    for(var n = 0; n < ws[b]; n++){ out.push([xs[k], ys[b]]); k++; }
+  }
+  return out;
+}
+function calibratedPick(p){
+  var a = adpAnchors();
+  if(a.length < 2) return null;
+  var e = p.ecr;
+  if(e <= a[0][0]) return a[0][1];
+  if(e >= a[a.length-1][0]){
+    /* Past the last anchor, continue at the trailing slope so deep players stay
+       ordered instead of all flattening onto the final value. */
+    var n = a.length - 1, m = Math.max(n - 1, 0);
+    var run = a[n][0] - a[m][0];
+    var slope = run > 0 ? (a[n][1] - a[m][1]) / run : 1;
+    return a[n][1] + slope * (e - a[n][0]);
+  }
+  for(var i = 0; i < a.length - 1; i++){
+    if(e >= a[i][0] && e <= a[i+1][0]){
+      var span = a[i+1][0] - a[i][0];
+      if(span <= 0) return a[i][1];
+      return a[i][1] + (a[i+1][1] - a[i][1]) * ((e - a[i][0]) / span);
+    }
+  }
+  return null;
+}
+/* Where the board expects this player to go, on the Yahoo pick scale. */
+function expectedPick(p){
+  return adpOf(p) || calibratedPick(p) || p.ecr;
 }
 function projAtRank(pos, rank){
   var curve = curveFor(pos);
@@ -552,7 +622,7 @@ function survival(p, targetOverall){
   if(targetOverall == null) return 0;
   /* Your leaguemates draft off Yahoo's board, not a national consensus, so
      centre on Yahoo ADP whenever it has been imported. */
-  var mu = adpOf(p) || p.ecr;
+  var mu = expectedPick(p);
   var sigma = Math.max(p.sd * 1.6, 2.0);
   return 1 - normCdf((targetOverall - mu) / sigma);
 }
@@ -941,7 +1011,8 @@ function renderBoard(){
       + '<td class="num pmeta col-rank">' + p.rank + '</td>'
       + '<td class="name"><div class="pname">' + esc(p.name) + '</div>'
         + '<div class="pmeta">' + esc(p.team || "FA") + ' · ' + p.pos + esc(String(p.posRank))
-        + (adpOf(p) ? ' · adp ' + adpOf(p) : "") + '</div></td>'
+        + (adpOf(p) ? ' · adp ' + adpOf(p)
+            : (calibratedPick(p) ? ' · adp ~' + Math.round(calibratedPick(p)) : "")) + '</div></td>'
       + '<td><span class="chip chip-' + p.pos + '">' + p.pos + '</span></td>'
       + '<td class="num pmeta">' + (p.bye || "—") + '</td>'
       + '<td><span class="tierpill' + (breaking ? " breaking" : "") + '">T' + p.tier
@@ -1102,6 +1173,8 @@ function renderFoot(){
     + '<span>Rankings scraped <b>' + esc(m.scrapeDate) + '</b> · ' + esc(m.sources.rankings) + '</span>'
     + '<span>Byes from <b>' + esc(m.sources.schedule) + '</b></span>'
     + (m.expertSource ? '<span>Second-opinion tiers: <b>' + esc(m.expertSource) + '</b> (Full PPR)</span>' : "")
+    + (m.adpCount ? '<span>Yahoo ADP for <b>' + m.adpCount + '</b> players ('
+        + esc(m.adpColumn || "") + '); the rest are estimated from consensus rank, shown as <b>~</b></span>' : "")
     + '<span>Projected points are modeled from positional rank, not per-player stat projections.</span>';
 }
 
@@ -1319,6 +1392,8 @@ window.__draft = {
   survival: survival, fillRoster: fillRoster, openStarterSlots: openStarterSlots,
   tierState: tierState, replacementRanks: replacementRanks, myNextOverall: myNextOverall,
   applyAdp: applyAdp, matchName: matchName, projOf: projOf, curveFor: curveFor,
+  adpOf: adpOf, calibratedPick: calibratedPick, expectedPick: expectedPick,
+  isotonic: isotonic, adpAnchors: adpAnchors,
   totalPicks: totalPicks, picksByTeam: picksByTeam, projAtRank: projAtRank
 };
 

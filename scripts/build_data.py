@@ -153,6 +153,31 @@ def load_expert_tiers():
     return blob.get("source"), out
 
 
+def load_yahoo_adp():
+    """Optional Yahoo average draft position, keyed by normalized name.
+
+    Yahoo names defenses by nickname ("Broncos") where the rankings use the full
+    club name ("Denver Broncos"), so those are also indexed by their last word.
+    """
+    path = os.path.join(HERE, os.pardir, "data", "yahoo_adp.json")
+    if not os.path.exists(path):
+        return None, {}
+    with open(path) as f:
+        blob = json.load(f)
+    out = {}
+    for name, adp in blob.get("players", {}).items():
+        out[norm_name(name)] = adp
+    return blob, out
+
+
+def adp_keys(player):
+    """Names a player might appear under in the ADP sheet, best first."""
+    keys = [norm_name(player["name"])]
+    if player["pos"] == "DST":
+        keys.append(norm_name(player["name"].split()[-1]))
+    return keys
+
+
 def derive_byes(games):
     """True bye weeks from the real regular-season schedule."""
     played = defaultdict(set)
@@ -250,6 +275,10 @@ def main():
     if expert:
         print(f"  expert tiers: {len(expert)} players from {expert_source}", file=sys.stderr)
 
+    adp_meta, adp_table = load_yahoo_adp()
+    if adp_table:
+        print(f"  yahoo adp: {len(adp_table)} entries", file=sys.stderr)
+
     byes, max_week = derive_byes(games)
     print(f"  schedule: {len(byes)} teams with byes, {max_week} weeks", file=sys.stderr)
 
@@ -324,12 +353,24 @@ def main():
             "posRank": pos_rank,
             "fpPosRank": fp_pos_rank_by_id.get(pid),
             "proj": project(pos, pos_rank),
+            "adp": None,
             "sbnTier": None,
             "sbnPosRank": None,
             "ecr1qb": sf.get("ecr_1qb"),
             "ecr2qb": sf.get("ecr_2qb"),
             "age": sf.get("age"),
         })
+
+    # Attach Yahoo ADP where a name matches.
+    adp_hits = 0
+    for p in players:
+        for key in adp_keys(p):
+            if key in adp_table:
+                p["adp"] = adp_table[key]
+                adp_hits += 1
+                break
+    if adp_table:
+        print(f"  matched {adp_hits} players to Yahoo ADP", file=sys.stderr)
 
     # Attach the expert sheet where a name matches.
     matched = 0
@@ -356,6 +397,10 @@ def main():
             "generatedAt": __import__("datetime").datetime.utcnow().isoformat() + "Z",
             "playerCount": len(players),
             "expertSource": expert_source,
+            "adpSource": (adp_meta or {}).get("source"),
+            "adpColumn": (adp_meta or {}).get("column"),
+            "adpCaptured": (adp_meta or {}).get("captured"),
+            "adpCount": adp_hits if adp_table else 0,
             "sources": {
                 "rankings": "FantasyPros consensus ECR via DynastyProcess",
                 "superflex": "DynastyProcess player values",

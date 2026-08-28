@@ -64,24 +64,36 @@ lifting them evenly — in simulation it moves the QB1 from round 2 into round 1
 
 ## Yahoo ADP
 
-Optional, and worth pasting in. Survival odds otherwise come from how much
-national experts disagree about a player, but your leaguemates are drafting off
-Yahoo's board. Paste your league's draft-board list into the ADP box at setup
-and the odds re-centre on what your actual room is likely to do.
+Yahoo's Draft Analysis page is login-only and unreachable from a build script,
+so ADP ships in `data/yahoo_adp.json`, transcribed from the league's own page.
+More can be pasted in at setup at any time; a paste always overrides what
+shipped.
 
-Yahoo's page is login-only, so this is a copy-paste. Select the Draft Analysis
-table and paste the whole thing — surrounding page text is ignored.
+Coverage is partial — the top of the board plus the ~95-126 band. Rather than
+mixing measured Yahoo picks with consensus ranks in the same column, which
+would silently put two scales side by side, consensus rank is **calibrated**
+onto the Yahoo scale using every player who has both. Estimated values are
+shown with a `~`.
 
-Two details the parser has to get right:
+The two sources disagree enough to matter, which is the point of importing it:
 
-- Yahoo's columns run **Avg Pick, Avg Round, % Drafted**. The ADP is the *first*
-  number after the name, not the last — the last one is the percentage.
-- Copying from the browser sometimes puts every table cell on its own line, so
-  the number arrives below the name rather than beside it.
+| | Consensus | Yahoo | |
+| --- | --- | --- | --- |
+| Cooper Kupp | 223 | 120.5 | Yahoo reaches ~100 picks early |
+| Pat Freiermuth | 238 | 124.4 | same |
+| Michael Pittman Jr. | 80 | 120.0 | falls ~40 picks further in Yahoo |
+| Chris Godwin Jr. | 77 | 97.3 | falls ~20 |
 
-Both shapes work, as do looser ones. Player names are matched against the known
-player list a word at a time, so a team and position glued onto the name cell
-(`Ja'Marr Chase Cin - WR`) needs no stripping:
+Because Yahoo and the consensus board disagree, the raw anchors are not
+monotone — Ashton Jeanty is consensus RB26 but a Yahoo top-16 pick. Fitting a
+line straight through them produces a mapping that can run backwards, so the
+anchors are passed through isotonic regression (pool adjacent violators) first.
+
+Yahoo's columns run **Avg Pick, Avg Round, % Drafted**, so a pasted row's ADP is
+the *first* number after the name — the last one is the percentage. Copying from
+the browser can also put every cell on its own line. Both shapes parse, as do
+looser ones, and names are matched a word at a time so the team and position
+glued onto the name cell need no stripping:
 
 ```
 1   Ja'Marr Chase Cin - WR   1.3   1.0   100%
@@ -98,6 +110,7 @@ Puka Nacua,3.5
 | Superflex / 2QB ranks | DynastyProcess values | Real |
 | Projected points | Positional rank mapped through Full-PPR expected-value curves | **Modeled** |
 | Second-opinion tiers | SB Nation Full-PPR tier sheet (`reference/`) | Real, hand-built by their analysts |
+| Yahoo ADP | The league's own Draft Analysis page (`data/yahoo_adp.json`) | Real where captured, **calibrated** elsewhere |
 
 Projected points are not per-player statistical projections. They are a smooth
 function of positional rank, which is what VORP needs — the gap between the
@@ -130,6 +143,7 @@ data/players.js          same data as a script tag, so file:// works
 scripts/build_data.py    fetches sources, models projections, assigns tiers
 scripts/parse_tiers.py   reads a tier-sheet PDF by glyph coordinates
 data/expert_tiers.json   parsed second-opinion tiers
+data/yahoo_adp.json      Yahoo average draft position
 reference/               source tier sheets
 scripts/bundle.py        inlines everything into dist/draft-board.html
 scripts/simulate_draft.js headless full-draft verification

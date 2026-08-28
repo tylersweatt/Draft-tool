@@ -43,6 +43,16 @@ team, so renaming or reordering does not move them.
 Everything persists to the browser's local storage, so a refresh or a closed
 tab mid-draft doesn't lose the board.
 
+**On a phone:** open the published page and add it to your home screen so it
+opens full-screen without browser chrome. Hit **Keep awake** in the header to
+hold a screen wake lock for the length of the draft — a phone that sleeps every
+thirty seconds is unusable when picks are thirty seconds apart. The lock is
+dropped whenever the page is hidden and re-taken when you come back.
+
+For a venue with bad signal, `dist/draft-board.html` is the whole tool in one
+file — data, code and all. Save it to the device and open it from there; it
+needs no network at all.
+
 **Keyboard:** `/` focuses search · type a name and press `Enter` to draft the
 top match · `Ctrl/Cmd+Z` undoes the last pick.
 

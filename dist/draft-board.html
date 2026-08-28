@@ -79,6 +79,7 @@ button{cursor:pointer;background:none;border:none}
 .btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 .btn-primary:hover{background:#FFBE4A;color:var(--accent-ink)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-on{border-color:var(--good);color:var(--good)}
 
 /* ---------- layout ---------- */
 /* Board on the left spanning both rows; recommendations pinned top-right where
@@ -957,6 +958,37 @@ function applyAdp(text){
   return { map:map, matched:matched, missed:missed };
 }
 
+/* ---------------- keep the screen awake ---------------- */
+/* A draft runs for hours with long gaps between your picks, and a phone that
+   sleeps every thirty seconds is unusable. The lock is dropped by the browser
+   whenever the page is hidden, so it has to be re-taken on return. */
+var wakeLock = null, wakeWanted = false;
+
+function wakeSupported(){ return "wakeLock" in navigator; }
+
+function acquireWake(){
+  if(!wakeWanted || !wakeSupported()) return;
+  try{
+    navigator.wakeLock.request("screen").then(function(lock){
+      wakeLock = lock;
+      lock.addEventListener("release", function(){ wakeLock = null; renderClock(); });
+      renderClock();
+    }, function(){
+      /* Denied — usually a background tab or a battery-saver mode. */
+      wakeWanted = false; renderClock();
+    });
+  }catch(e){ wakeWanted = false; renderClock(); }
+}
+function toggleWake(){
+  wakeWanted = !wakeWanted;
+  if(wakeWanted){ acquireWake(); }
+  else if(wakeLock){ wakeLock.release().catch(function(){}); wakeLock = null; renderClock(); }
+  else renderClock();
+}
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "visible" && wakeWanted && !wakeLock) acquireWake();
+});
+
 /* ---------------- rendering ---------------- */
 /* Expert sheet vs consensus, as a positional-rank gap. Positive means the
    expert sheet is higher on the player than the consensus board is. */
@@ -1027,6 +1059,10 @@ function renderClock(){
     + nextTxt
     + '<div class="clock-actions">'
       + '<button class="btn" id="btnUndo"' + (state.picks.length ? "" : " disabled") + '>Undo</button>'
+      + (wakeSupported()
+          ? '<button class="btn' + (wakeLock ? " btn-on" : "") + '" id="btnWake" aria-pressed="'
+            + (!!wakeLock) + '">' + (wakeLock ? "Awake \u2713" : "Keep awake") + '</button>'
+          : "")
       + '<button class="btn" id="btnExport">Export</button>'
       + '<button class="btn" id="btnSetup">Settings</button>'
     + '</div>';
@@ -1047,6 +1083,7 @@ function wireClock(){
     sel.onblur = function(){ ui.picking = false; renderClock(); };
   }
   if(u) u.onclick = undoPick;
+  var wk = el("btnWake"); if(wk) wk.onclick = toggleWake;
   if(e) e.onclick = exportDraft;
   if(s) s.onclick = function(){ openSetup(true); };
   if(r) r.onclick = function(){ if(confirm("Start a new draft? This clears every pick.")){ resetDraft(); } };
@@ -1576,6 +1613,7 @@ window.__draft = {
   adpOf: adpOf, calibratedPick: calibratedPick, expectedPick: expectedPick,
   isotonic: isotonic, adpAnchors: adpAnchors,
   moveTeam: moveTeam, renderTeamList: renderTeamList, creditedTeam: creditedTeam, ui: ui,
+  toggleWake: toggleWake, wakeSupported: wakeSupported,
   get setupOrder(){ return setupOrder; }, get setupMe(){ return setupMe; },
   totalPicks: totalPicks, picksByTeam: picksByTeam, projAtRank: projAtRank
 };

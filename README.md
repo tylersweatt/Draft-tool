@@ -69,13 +69,24 @@ national experts disagree about a player, but your leaguemates are drafting off
 Yahoo's board. Paste your league's draft-board list into the ADP box at setup
 and the odds re-centre on what your actual room is likely to do.
 
-The parser is deliberately loose about format — it takes the trailing number on
-each line as the ADP and the leading words as the name, so these all work:
+Yahoo's page is login-only, so this is a copy-paste. Select the Draft Analysis
+table and paste the whole thing — surrounding page text is ignored.
+
+Two details the parser has to get right:
+
+- Yahoo's columns run **Avg Pick, Avg Round, % Drafted**. The ADP is the *first*
+  number after the name, not the last — the last one is the percentage.
+- Copying from the browser sometimes puts every table cell on its own line, so
+  the number arrives below the name rather than beside it.
+
+Both shapes work, as do looser ones. Player names are matched against the known
+player list a word at a time, so a team and position glued onto the name cell
+(`Ja'Marr Chase Cin - WR`) needs no stripping:
 
 ```
-1. Ja'Marr Chase (CIN - WR) 1.2
-2  Jahmyr Gibbs  DET RB  2.4
+1   Ja'Marr Chase Cin - WR   1.3   1.0   100%
 Puka Nacua,3.5
+4. Bijan Robinson (ATL - RB) 4.1
 ```
 
 ## Data

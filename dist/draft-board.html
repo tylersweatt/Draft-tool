@@ -381,7 +381,7 @@ tr.gone .pname{text-decoration:line-through}
       <input id="cfgNames" type="text" placeholder="Ty, Marcus, Dan, …">
       <p class="adp-status" id="slotEcho"></p></div>
     <div class="fld"><label for="cfgAdp">Yahoo ADP (optional — paste your league's draft board)</label>
-      <textarea id="cfgAdp" rows="3" placeholder="1. Ja'Marr Chase (CIN - WR) 1.2&#10;2. Jahmyr Gibbs (DET - RB) 2.4"></textarea>
+      <textarea id="cfgAdp" rows="3" placeholder="Paste Yahoo&#39;s Draft Analysis table &#8212; 1  Ja&#39;Marr Chase Cin - WR  1.3  1.0  100%"></textarea>
       <p class="adp-status" id="adpStatus"></p></div>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-primary" id="cfgStart" style="flex:1;padding:10px">Start Draft</button>
@@ -752,39 +752,79 @@ function normName(n){
   return n.toLowerCase().replace(/'/g,"").replace(/\./g,"").replace(/-/g," ")
     .split(/\s+/).filter(function(w){ return w && !SUFFIX[w]; }).join(" ");
 }
-/* Yahoo's board can be pasted in a lot of shapes ("1. Bijan Robinson (ATL - RB)
-   3.4", "Bijan Robinson,3.4", tab-separated). Pull the trailing number as the
-   ADP and the leading words as the name, rather than demanding one format. */
-function parseAdp(text){
-  var rows = [];
-  text.split(/\r?\n/).forEach(function(raw){
-    var line = raw.trim();
-    if(!line) return;
-    line = line.replace(/^\d+[.)]?\s+/, "");
-    var nums = line.match(/\d+(?:\.\d+)?/g);
-    if(!nums) return;
-    var adp = parseFloat(nums[nums.length - 1]);
-    if(!(adp > 0 && adp <= 400)) return;
-    var name = line.split(/[(,\t]|\s{2,}/)[0]
-      .replace(/\d+(?:\.\d+)?/g, "")
-      .replace(/\b(QB|RB|WR|TE|K|DEF|DST)\b[\s\S]*$/i, "")
-      .replace(/\s+/g, " ").trim();
-    if(name.split(" ").length >= 2) rows.push({ name:name, adp:adp });
-  });
-  return rows;
-}
-function applyAdp(text){
-  var byName = {};
+var NUMERIC = /^\d+(?:\.\d+)?$/;
+
+function nameIndex(){
+  var idx = {};
   PLAYERS.forEach(function(p){
     var k = normName(p.name);
-    if(!(k in byName)) byName[k] = p.id;
+    if(!(k in idx)) idx[k] = p.id;
   });
+  return idx;
+}
+/* Yahoo glues the team and position onto the player cell ("Ja'Marr Chase Cin -
+   WR"), and the exact shape varies. Rather than trying to strip that off with
+   patterns, match the leading words against the known player list, longest
+   first, and report how many words the name consumed. */
+function matchName(words, idx){
+  for(var n = Math.min(5, words.length); n >= 2; n--){
+    var id = idx[normName(words.slice(0, n).join(" "))];
+    if(id) return { id:id, used:n };
+  }
+  return null;
+}
+function cells(line){
+  return line.replace(/[(),\t]/g, " ").split(/\s+/).filter(Boolean);
+}
+function looksLikePlayerRow(words){
+  var real = words.filter(function(w){ return /^[A-Za-z'.-]{3,}$/.test(w); });
+  return real.length >= 2;
+}
+
+/* Handles both shapes a Yahoo board arrives in: one row per line, and one
+   *cell* per line when copied straight out of the browser table. */
+function applyAdp(text){
+  var idx = nameIndex();
+  var lines = text.split(/\r?\n/).map(function(l){ return l.trim(); });
   var map = {}, matched = 0, missed = [];
-  parseAdp(text).forEach(function(r){
-    var id = byName[normName(r.name)];
-    if(id){ map[id] = r.adp; matched++; }
-    else missed.push(r.name);
-  });
+
+  for(var i = 0; i < lines.length; i++){
+    if(!lines[i]) continue;
+    var body = lines[i].replace(/^\d+[.)]?\s+/, "");   // drop a leading rank column
+    var words = cells(body);
+    if(!words.length) continue;
+
+    var m = matchName(words, idx);
+    if(!m){
+      if(looksLikePlayerRow(words) && missed.length < 40) missed.push(body);
+      continue;
+    }
+
+    /* Take the FIRST number after the name. Yahoo's table runs
+       Avg Pick, Avg Round, % Drafted — so the last number on the row is the
+       percentage, not the draft position. */
+    var adp = null;
+    var rest = words.slice(m.used);
+    for(var j = 0; j < rest.length; j++){
+      var tok = rest[j].replace(/[%$]/g, "");
+      if(NUMERIC.test(tok)){ adp = parseFloat(tok); break; }
+    }
+    /* Cell-per-line paste: the number is on a following line instead. Stop at
+       the next player so a missing value cannot borrow the next row's. */
+    if(adp === null){
+      for(var k = i + 1; k < Math.min(i + 6, lines.length); k++){
+        var nxt = lines[k].replace(/[%$]/g, "").trim();
+        if(!nxt) continue;
+        if(NUMERIC.test(nxt)){ adp = parseFloat(nxt); break; }
+        if(matchName(cells(nxt), idx)) break;
+      }
+    }
+
+    if(adp !== null && adp > 0 && adp <= 400 && !(m.id in map)){
+      map[m.id] = adp;
+      matched++;
+    }
+  }
   return { map:map, matched:matched, missed:missed };
 }
 
@@ -1280,7 +1320,7 @@ window.__draft = {
   pickInRound: pickInRound, availablePlayers: availablePlayers, vorp: vorp,
   survival: survival, fillRoster: fillRoster, openStarterSlots: openStarterSlots,
   tierState: tierState, replacementRanks: replacementRanks, myNextOverall: myNextOverall,
-  parseAdp: parseAdp, applyAdp: applyAdp, projOf: projOf, curveFor: curveFor,
+  applyAdp: applyAdp, matchName: matchName, projOf: projOf, curveFor: curveFor,
   totalPicks: totalPicks, picksByTeam: picksByTeam, projAtRank: projAtRank
 };
 

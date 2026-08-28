@@ -225,30 +225,54 @@ function check(name, cond, detail) {
 
   const adp = await page.evaluate(() => {
     const d = window.__draft;
-    // Three shapes Yahoo boards get pasted in, plus a junk line.
-    const text = [
-      "1. Ja'Marr Chase (CIN - WR) 1.2",
-      "2  Jahmyr Gibbs  DET RB  2.4",
-      "Puka Nacua,3.5",
-      "-- not a player --",
-      "4. Bijan Robinson (ATL - RB) 4.1",
+    // Yahoo's Draft Analysis table, as it arrives when copied out of the page.
+    // Columns run Avg Pick, Avg Round, % Drafted — so the LAST number on a row
+    // is the percentage, and reading it as the ADP is the obvious wrong answer.
+    const inline = [
+      "Rank\tPlayer\tAvg Pick\tAvg Round\t% Drafted",
+      "1\tJa'Marr Chase Cin - WR\t1.3\t1.0\t100%",
+      "2\tJahmyr Gibbs Det - RB\t2.5\t1.0\t100%",
+      "3\tBijan Robinson Atl - RB\t3.4\t1.0\t99%",
+      "17\tMichael Penix Jr. Atl - QB\t112.6\t10.0\t74%",
     ].join("\n");
-    const res = d.applyAdp(text);
-    const chase = window.PLAYER_DATA.players.find((p) => p.name === "Ja'Marr Chase");
-    return { matched: res.matched, missed: res.missed, chaseAdp: res.map[chase.id] };
+    const a = d.applyAdp(inline);
+
+    // Same table copied cell-by-cell, one value per line.
+    const stacked = [
+      "1", "Ja'Marr Chase", "Cin - WR", "1.3", "1.0", "100%",
+      "2", "Jahmyr Gibbs", "Det - RB", "2.5", "1.0", "100%",
+    ].join("\n");
+    const b = d.applyAdp(stacked);
+
+    // The looser shapes should still work.
+    const loose = ["Puka Nacua,3.5", "4. Bijan Robinson (ATL - RB) 4.1"].join("\n");
+    const c = d.applyAdp(loose);
+
+    const id = (n) => window.PLAYER_DATA.players.find((p) => p.name === n).id;
+    return {
+      inline: { n: a.matched, chase: a.map[id("Ja'Marr Chase")], penix: a.map[id("Michael Penix Jr.")] },
+      stacked: { n: b.matched, chase: b.map[id("Ja'Marr Chase")], gibbs: b.map[id("Jahmyr Gibbs")] },
+      loose: { n: c.matched, nacua: c.map[id("Puka Nacua")] },
+    };
   });
-  check("ADP parses all three paste formats", adp.matched === 4,
-    "matched " + adp.matched + ", missed " + JSON.stringify(adp.missed));
-  check("ADP values attach to the right player", adp.chaseAdp === 1.2, "got " + adp.chaseAdp);
+
+  check("Yahoo table rows parse", adp.inline.n === 4, "matched " + adp.inline.n);
+  check("ADP reads Avg Pick, not % Drafted", adp.inline.chase === 1.3,
+    "Chase came back as " + adp.inline.chase);
+  check("team and position glued to the name are handled", adp.inline.penix === 112.6,
+    "Penix came back as " + adp.inline.penix);
+  check("cell-per-line paste parses", adp.stacked.n === 2 && adp.stacked.chase === 1.3
+    && adp.stacked.gibbs === 2.5, JSON.stringify(adp.stacked));
+  check("looser paste shapes still parse", adp.loose.n === 2 && adp.loose.nacua === 3.5,
+    JSON.stringify(adp.loose));
 
   const surv = await page.evaluate(() => {
     const d = window.__draft;
     const p = window.PLAYER_DATA.players.find((x) => x.name === "Ja'Marr Chase");
     d.state.config.adp = {};
     const noAdp = d.survival(p, 20);
-    // Yahoo has him going much later than consensus does.
     d.state.config.adp = {};
-    d.state.config.adp[p.id] = 40;
+    d.state.config.adp[p.id] = 40;   // Yahoo has him going later than consensus
     const withAdp = d.survival(p, 20);
     d.state.config.adp = {};
     return { noAdp, withAdp };

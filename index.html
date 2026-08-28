@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Draft War Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Committed single-theme design: this is a scoreboard, and it is read in a dim
+   room under time pressure. Every color is painted explicitly so the page holds
+   on any host ground. */
+:root{
+  --ground:#0E1419;
+  --panel:#161E25;
+  --raised:#1E2831;
+  --hairline:#2A3742;
+  --hairline-soft:#212C35;
+  --ink:#E8EEF2;
+  --ink-dim:#A8B8C4;
+  --ink-mute:#8DA0AD;
+  --accent:#F0A830;
+  --accent-ink:#1A1206;
+  --good:#4FB477;
+  --warn:#E8B14C;
+  --crit:#E4572E;
+  --qb:#E4572E; --rb:#4FB477; --wr:#4C9BE8; --te:#C77DD4; --k:#8DA0AD; --dst:#7A8B99;
+  --f-display:"Barlow Condensed",-apple-system,"Segoe UI",sans-serif;
+  --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r:6px;
+}
+*{box-sizing:border-box}
+/* Elements below set display:flex/grid, which outranks the user-agent
+   [hidden]{display:none} rule and would leave "hidden" panels on screen. */
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground);color:var(--ink);
+  font-family:var(--f-body);font-size:14px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+
+/* ---------- clock bar ---------- */
+.clock{
+  position:sticky;top:0;z-index:40;
+  background:var(--panel);border-bottom:1px solid var(--hairline);
+  display:flex;align-items:center;gap:18px;
+  padding:9px 16px;flex-wrap:wrap;
+}
+.clock.mine{background:linear-gradient(180deg,#2A1F08,#1C1608);border-bottom-color:var(--accent)}
+.clock-id{display:flex;align-items:baseline;gap:10px;min-width:0}
+.clock-round{font-family:var(--f-display);font-size:30px;font-weight:700;letter-spacing:.01em;line-height:1}
+.clock-ov{font-family:var(--f-mono);font-size:12px;color:var(--ink-mute)}
+.onclock{display:flex;align-items:baseline;gap:9px;min-width:0;flex:1}
+.onclock-lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
+.onclock-team{font-family:var(--f-display);font-size:24px;font-weight:600;line-height:1;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.clock.mine .onclock-team{color:var(--accent)}
+.youbadge{
+  background:var(--accent);color:var(--accent-ink);font-weight:700;
+  font-size:10px;letter-spacing:.12em;padding:3px 7px;border-radius:3px;text-transform:uppercase;
+}
+.clock-next{font-size:12px;color:var(--ink-dim);white-space:nowrap}
+.clock-next b{font-family:var(--f-mono);color:var(--ink)}
+.clock-actions{display:flex;gap:6px;margin-left:auto}
+.btn{
+  background:var(--raised);border:1px solid var(--hairline);border-radius:var(--r);
+  padding:6px 11px;font-size:12px;font-weight:500;color:var(--ink-dim);
+  transition:background .12s,color .12s,border-color .12s;
+}
+.btn:hover{background:#28343E;color:var(--ink)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn-primary:hover{background:#FFBE4A;color:var(--accent-ink)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ---------- layout ---------- */
+/* Board on the left spanning both rows; recommendations pinned top-right where
+   the eye lands first, roster and alerts beneath them. */
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;padding:14px;align-items:start}
+.board{grid-column:1;grid-row:1 / span 2}
+#recPanel{grid-column:2;grid-row:1}
+.side{grid-column:2;grid-row:2}
+@media(max-width:1080px){
+  /* One column, and the recommendation comes before the board: on a phone the
+     answer matters more than the table it came from. */
+  .wrap{grid-template-columns:1fr}
+  .board,#recPanel,.side{grid-column:1;grid-row:auto}
+  #recPanel{order:1}
+  .board{order:2}
+  .side{order:3}
+}
+.panel{background:var(--panel);border:1px solid var(--hairline);border-radius:8px;overflow:hidden}
+.panel-hd{
+  display:flex;align-items:center;gap:8px;padding:9px 12px;
+  border-bottom:1px solid var(--hairline-soft);background:var(--raised);
+}
+.panel-hd h2{
+  font-family:var(--f-display);font-size:15px;font-weight:600;margin:0;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.panel-hd .count{font-family:var(--f-mono);font-size:11px;color:var(--ink-mute);margin-left:auto}
+.side{display:flex;flex-direction:column;gap:14px}
+
+/* ---------- controls ---------- */
+.controls{display:flex;gap:8px;padding:10px 12px;border-bottom:1px solid var(--hairline-soft);flex-wrap:wrap}
+.search{
+  flex:1;min-width:150px;background:var(--ground);border:1px solid var(--hairline);
+  border-radius:var(--r);padding:7px 10px;
+}
+.search::placeholder{color:var(--ink-mute)}
+.posfilter{display:flex;gap:3px;flex-wrap:wrap}
+.pos-btn{
+  border:1px solid var(--hairline);border-radius:var(--r);padding:6px 9px;
+  font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--ink-mute);background:var(--ground);
+}
+.pos-btn:hover{color:var(--ink)}
+.pos-btn[aria-pressed="true"]{background:var(--raised);color:var(--ink);border-color:#3C4C59}
+select.sortsel{background:var(--ground);border:1px solid var(--hairline);border-radius:var(--r);padding:6px 8px;font-size:12px}
+
+/* ---------- board table ---------- */
+.tablewrap{overflow-x:auto;max-height:calc(100vh - 210px);overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{
+  position:sticky;top:0;z-index:5;background:var(--raised);
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute);
+  font-weight:600;text-align:left;padding:7px 8px;border-bottom:1px solid var(--hairline);
+  white-space:nowrap;
+}
+thead th.r{text-align:right}
+tbody tr{border-bottom:1px solid var(--hairline-soft);cursor:pointer}
+tbody tr:hover{background:#1B242C}
+tbody tr:last-child{border-bottom:none}
+td{padding:7px 8px;white-space:nowrap;vertical-align:middle}
+td.name{white-space:normal;min-width:150px}
+.pname{font-weight:600}
+.pmeta{font-size:11px;color:var(--ink-mute);font-family:var(--f-mono)}
+.chip{
+  display:inline-block;font-family:var(--f-mono);font-size:10px;font-weight:600;
+  padding:2px 5px;border-radius:3px;letter-spacing:.03em;
+}
+.chip-QB{background:rgba(228,87,46,.16);color:#F2825F}
+.chip-RB{background:rgba(79,180,119,.16);color:#6FD097}
+.chip-WR{background:rgba(76,155,232,.16);color:#7CB8F0}
+.chip-TE{background:rgba(199,125,212,.16);color:#D79AE2}
+.chip-K{background:rgba(141,160,173,.16);color:#A8B8C4}
+.chip-DST{background:rgba(122,139,153,.16);color:#9BAAB6}
+.tierpill{
+  font-family:var(--f-mono);font-size:10px;padding:2px 6px;border-radius:3px;
+  background:var(--raised);color:var(--ink-dim);border:1px solid var(--hairline);
+}
+.tierpill.breaking{background:rgba(228,87,46,.16);color:#F2825F;border-color:rgba(228,87,46,.4)}
+.vorp-pos{color:var(--good);font-weight:600}
+.vorp-neg{color:var(--ink-mute)}
+.surv{display:flex;align-items:center;gap:5px;justify-content:flex-end}
+.survbar{width:26px;height:4px;border-radius:2px;background:var(--hairline);overflow:hidden;flex:none}
+.survbar i{display:block;height:100%;background:var(--good)}
+.survbar.low i{background:var(--crit)}
+.survbar.mid i{background:var(--warn)}
+.survtxt{font-family:var(--f-mono);font-size:11px;color:var(--ink-dim);width:30px;text-align:right}
+tr.gone{opacity:.34}
+tr.gone .pname{text-decoration:line-through}
+.empty{padding:26px 14px;text-align:center;color:var(--ink-mute);font-size:13px}
+
+/* ---------- recommendations ---------- */
+.rec{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--hairline-soft);cursor:pointer;align-items:flex-start}
+.rec:hover{background:#1B242C}
+.rec:last-child{border-bottom:none}
+.rec-rk{
+  font-family:var(--f-display);font-size:19px;font-weight:700;color:var(--ink-mute);
+  width:17px;flex:none;line-height:1.15;text-align:center;
+}
+.rec:first-child .rec-rk{color:var(--accent)}
+.rec-body{min-width:0;flex:1}
+.rec-top{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.rec-name{font-weight:600}
+.rec-score{margin-left:auto;font-family:var(--f-mono);font-size:12px;color:var(--good);font-weight:600}
+.reasons{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+.reason{
+  font-size:10.5px;padding:2px 6px;border-radius:3px;
+  background:var(--raised);color:var(--ink-dim);border:1px solid var(--hairline-soft);
+}
+.reason.urgent{background:rgba(228,87,46,.14);color:#F2825F;border-color:rgba(228,87,46,.32)}
+.reason.need{background:rgba(240,168,48,.14);color:var(--accent);border-color:rgba(240,168,48,.32)}
+.reason.warn{background:rgba(232,177,76,.13);color:var(--warn);border-color:rgba(232,177,76,.3)}
+
+/* ---------- roster ---------- */
+.roster{padding:4px 0}
+.slot{
+  display:flex;align-items:center;gap:8px;padding:5px 12px;
+  border-bottom:1px solid var(--hairline-soft);font-size:12.5px;
+}
+.slot:last-child{border-bottom:none}
+.slot-lbl{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.06em;color:var(--ink-mute);
+  width:38px;flex:none;
+}
+.slot-empty{color:var(--ink-mute);font-style:italic}
+.slot-bye{margin-left:auto;font-family:var(--f-mono);font-size:10.5px;color:var(--ink-mute)}
+.slot-bye.clash{color:var(--crit);font-weight:600}
+.slot.bench{background:#131A20}
+
+/* ---------- alerts ---------- */
+.alert{display:flex;gap:8px;padding:9px 12px;border-bottom:1px solid var(--hairline-soft);font-size:12.5px;align-items:flex-start}
+.alert:last-child{border-bottom:none}
+.alert-dot{width:6px;height:6px;border-radius:50%;flex:none;margin-top:6px}
+.alert.crit .alert-dot{background:var(--crit)}
+.alert.warn .alert-dot{background:var(--warn)}
+.alert.info .alert-dot{background:var(--ink-mute)}
+.alert b{font-weight:600}
+.alert-sub{color:var(--ink-mute);font-size:11.5px}
+
+/* ---------- log / teams ---------- */
+.tabs{display:flex;gap:2px;padding:8px 12px 0}
+.tab{
+  padding:6px 12px;font-size:12px;font-weight:600;color:var(--ink-mute);
+  border:1px solid transparent;border-bottom:none;border-radius:var(--r) var(--r) 0 0;
+}
+.tab[aria-selected="true"]{background:var(--panel);color:var(--ink);border-color:var(--hairline)}
+.logrows{max-height:300px;overflow-y:auto}
+.logrow{
+  display:flex;align-items:center;gap:9px;padding:6px 12px;
+  border-bottom:1px solid var(--hairline-soft);font-size:12.5px;
+}
+.logrow:last-child{border-bottom:none}
+.logrow.mine{background:rgba(240,168,48,.07)}
+.log-pk{font-family:var(--f-mono);font-size:11px;color:var(--ink-mute);width:44px;flex:none}
+.log-team{font-size:11.5px;color:var(--ink-mute);width:96px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-undo{margin-left:auto;font-size:11px;color:var(--ink-mute);padding:2px 6px;border-radius:3px}
+.log-undo:hover{color:var(--crit);background:rgba(228,87,46,.12)}
+.teamsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:12px}
+.teamcard{background:var(--ground);border:1px solid var(--hairline-soft);border-radius:var(--r);padding:9px 10px}
+.teamcard.mine{border-color:var(--accent)}
+.teamcard h3{
+  font-family:var(--f-display);font-size:13px;font-weight:600;margin:0 0 6px;
+  letter-spacing:.05em;text-transform:uppercase;color:var(--ink-dim);
+}
+.teamcard.mine h3{color:var(--accent)}
+.teamcard ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.teamcard li{font-size:11.5px;display:flex;gap:6px;align-items:baseline}
+.teamcard li span.pos{font-family:var(--f-mono);font-size:9.5px;width:26px;flex:none;color:var(--ink-mute)}
+
+/* ---------- setup ---------- */
+.setup-back{position:fixed;inset:0;background:rgba(8,12,15,.86);z-index:100;display:flex;align-items:center;justify-content:center;padding:18px;overflow-y:auto}
+.setup{background:var(--panel);border:1px solid var(--hairline);border-radius:10px;max-width:520px;width:100%;padding:22px}
+.setup h1{font-family:var(--f-display);font-size:27px;margin:0 0 3px;letter-spacing:.02em;text-transform:uppercase}
+.setup .sub{color:var(--ink-mute);font-size:12.5px;margin:0 0 18px}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:5px;font-weight:600}
+.fld input,.fld select{width:100%;background:var(--ground);border:1px solid var(--hairline);border-radius:var(--r);padding:8px 10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slotrow label{font-size:10px}
+.setup-note{font-size:11.5px;color:var(--ink-mute);border-top:1px solid var(--hairline-soft);padding-top:12px;margin-top:6px}
+.foot{padding:11px 16px;color:var(--ink-mute);font-size:11.5px;border-top:1px solid var(--hairline);display:flex;gap:14px;flex-wrap:wrap}
+.foot b{color:var(--ink-dim);font-weight:600}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- narrow screens ---------- */
+@media(max-width:640px){
+  /* The clock's parts collide when they share a line, so give each its own row. */
+  .clock{gap:6px 12px;padding:8px 12px}
+  .clock-id{order:1}
+  .onclock{order:2;flex:1 1 100%}
+  .onclock-lbl{display:none}
+  .clock-next{order:3;flex:1 1 100%}
+  .clock-actions{order:4;margin-left:0;flex:1 1 100%}
+  .clock-actions .btn{flex:1}
+  .clock-round{font-size:26px}
+  .onclock-team{font-size:21px}
+  .wrap{padding:10px;gap:10px}
+  .tablewrap{max-height:none}
+  /* Rank and projected points are the least load-bearing columns; drop them so
+     value over replacement and survival stay on screen without scrolling. */
+  .col-rank,.col-proj{display:none}
+  td.name{min-width:118px}
+  .teamsgrid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="clock" class="clock"></div>
+
+<div class="wrap">
+  <section class="panel" id="recPanel">
+    <div class="panel-hd"><h2 id="recTitle">Recommended</h2></div>
+    <div id="recs"></div>
+  </section>
+
+  <main class="panel board">
+    <div class="panel-hd">
+      <h2>Big Board</h2>
+      <span class="count" id="boardCount"></span>
+    </div>
+    <div class="controls">
+      <input id="search" class="search" type="search" placeholder="Search player, then Enter to draft…" autocomplete="off" aria-label="Search players">
+      <div class="posfilter" id="posFilter"></div>
+      <select id="sortSel" class="sortsel" aria-label="Sort board by">
+        <option value="ecr">Sort: Consensus rank</option>
+        <option value="vorp">Sort: Value over replacement</option>
+        <option value="proj">Sort: Projected points</option>
+        <option value="surv">Sort: Least likely to last</option>
+      </select>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th class="col-rank">#</th><th>Player</th><th>Pos</th><th>Bye</th><th>Tier</th>
+          <th class="r col-proj">Proj</th><th class="r">VORP</th><th class="r">Lasts?</th>
+        </tr></thead>
+        <tbody id="boardBody"></tbody>
+      </table>
+      <div id="boardEmpty" class="empty" hidden>No players match that filter.</div>
+    </div>
+  </main>
+
+  <aside class="side">
+    <section class="panel">
+      <div class="panel-hd"><h2>Your Roster</h2><span class="count" id="rosterCount"></span></div>
+      <div class="roster" id="roster"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-hd"><h2>Watch</h2></div>
+      <div id="alerts"></div>
+    </section>
+  </aside>
+</div>
+
+<div class="wrap" style="grid-template-columns:1fr">
+  <section class="panel">
+    <div class="tabs" role="tablist">
+      <button class="tab" id="tabLog" role="tab" aria-selected="true" aria-controls="paneLog">Draft Log</button>
+      <button class="tab" id="tabTeams" role="tab" aria-selected="false" aria-controls="paneTeams">All Rosters</button>
+    </div>
+    <div id="paneLog" role="tabpanel" class="logrows"></div>
+    <div id="paneTeams" role="tabpanel" class="teamsgrid" hidden></div>
+    <div class="foot" id="foot"></div>
+  </section>
+</div>
+
+<div id="setupBack" class="setup-back" hidden>
+  <div class="setup" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <h1 id="setupTitle">Draft War Room</h1>
+    <p class="sub" id="setupSub"></p>
+    <div class="grid2">
+      <div class="fld"><label for="cfgTeams">Teams</label>
+        <input id="cfgTeams" type="number" min="4" max="20" value="12"></div>
+      <div class="fld"><label for="cfgSlot">Your draft slot</label>
+        <input id="cfgSlot" type="number" min="1" max="20" value="1"></div>
+    </div>
+    <div class="fld"><label for="cfgRounds">Rounds</label>
+      <input id="cfgRounds" type="number" min="1" max="30" value="16"></div>
+    <div class="fld"><label>Starting lineup</label>
+      <div class="grid4 slotrow" id="cfgSlots"></div></div>
+    <div class="fld"><label for="cfgNames">Team names (optional, comma separated)</label>
+      <input id="cfgNames" type="text" placeholder="Ty, Marcus, Dan, …"></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary" id="cfgStart" style="flex:1;padding:10px">Start Draft</button>
+      <button class="btn" id="cfgCancel" hidden>Cancel</button>
+    </div>
+    <p class="setup-note" id="setupData"></p>
+  </div>
+</div>
+
+<script src="data/players.js"></script>
+<script>
+(function(){
+"use strict";
+
+var DATA = window.PLAYER_DATA;
+var PLAYERS = DATA.players;
+var CURVES = DATA.pointCurves;
+var BY_ID = {};
+PLAYERS.forEach(function(p){ BY_ID[p.id] = p; });
+
+var KEY = "draft-war-room-v1";
+var POS = ["QB","RB","WR","TE","K","DST"];
+var FLEX_POS = ["RB","WR","TE"];
+/* Share of FLEX slots each position ends up occupying in Full PPR. Used to
+   push replacement level deeper for the positions that actually fill flex. */
+var FLEX_SHARE = { RB:0.33, WR:0.55, TE:0.12 };
+
+var state = null;
+
+/* ---------------- persistence ---------------- */
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+}
+function load(){
+  try{
+    var raw = localStorage.getItem(KEY);
+    if(!raw) return null;
+    var s = JSON.parse(raw);
+    if(!s || !s.config || !Array.isArray(s.picks)) return null;
+    return s;
+  }catch(e){ return null; }
+}
+
+function defaultConfig(){
+  return {
+    teams:12, slot:1, rounds:16,
+    slots:{ QB:1, RB:2, WR:2, TE:1, FLEX:2, K:1, DST:1 },
+    names:[]
+  };
+}
+
+/* ---------------- draft math ---------------- */
+function totalPicks(){ return state.config.teams * state.config.rounds; }
+function currentOverall(){ return state.picks.length + 1; }
+function roundOf(ov){ return Math.floor((ov-1)/state.config.teams) + 1; }
+function pickInRound(ov){ return ((ov-1) % state.config.teams) + 1; }
+function teamOnClock(ov){
+  var t = state.config.teams, r = roundOf(ov), i = (ov-1) % t;
+  return (r % 2 === 1) ? i : (t - 1 - i);   // snake
+}
+function myTeamIdx(){ return state.config.slot - 1; }
+function teamName(i){
+  var n = state.config.names[i];
+  return n && n.trim() ? n.trim() : ("Team " + (i+1));
+}
+function nextPickFor(teamIdx, fromOv){
+  for(var ov = fromOv; ov <= totalPicks(); ov++){
+    if(teamOnClock(ov) === teamIdx) return ov;
+  }
+  return null;
+}
+function picksRemainingFor(teamIdx){
+  var n = 0;
+  for(var ov = currentOverall(); ov <= totalPicks(); ov++){
+    if(teamOnClock(ov) === teamIdx) n++;
+  }
+  return n;
+}
+function myNextOverall(){
+  return nextPickFor(myTeamIdx(), currentOverall());
+}
+function draftedIds(){
+  var s = {};
+  state.picks.forEach(function(p){ s[p.playerId] = true; });
+  return s;
+}
+function picksByTeam(teamIdx){
+  return state.picks.filter(function(p){ return p.teamIdx === teamIdx; })
+                    .map(function(p){ return BY_ID[p.playerId]; })
+                    .filter(Boolean);
+}
+
+/* ---------------- valuation ---------------- */
+function projAtRank(pos, rank){
+  var curve = CURVES[pos];
+  if(!curve || !rank) return 0;
+  if(rank <= curve[0][0]) return curve[0][1];
+  for(var i=0;i<curve.length-1;i++){
+    var a = curve[i], b = curve[i+1];
+    if(rank >= a[0] && rank <= b[0]){
+      return a[1] + (b[1]-a[1]) * ((rank-a[0])/(b[0]-a[0]));
+    }
+  }
+  var last = curve[curve.length-1], prev = curve[curve.length-2];
+  var slope = (prev[1]-last[1]) / Math.max(last[0]-prev[0],1);
+  return Math.max(last[1] - slope*(rank-last[0]), 8);
+}
+
+/* Replacement level: the rank at which a position stops being startable,
+   given how many of each slot the whole league must fill. */
+function replacementRanks(){
+  var c = state.config, t = c.teams, s = c.slots;
+  var flexTotal = t * (s.FLEX || 0);
+  var out = {};
+  POS.forEach(function(p){
+    var base = t * (s[p] || 0);
+    if(FLEX_POS.indexOf(p) >= 0) base += flexTotal * FLEX_SHARE[p];
+    if(p === "QB") base += t * 0.15;        // QB streaming pushes it slightly deeper
+    out[p] = Math.max(Math.round(base), 1);
+  });
+  return out;
+}
+var _repl = null, _replCache = "";
+function repl(){
+  var sig = JSON.stringify(state.config.slots) + "|" + state.config.teams;
+  if(sig !== _replCache){ _repl = replacementRanks(); _replCache = sig; }
+  return _repl;
+}
+function vorp(p){
+  var r = repl()[p.pos];
+  return p.proj - projAtRank(p.pos, r);
+}
+
+/* Probability a player is still on the board at a future pick. Expert-ranking
+   spread understates real draft-room spread, so it is widened before use. */
+function normCdf(z){
+  var t = 1/(1+0.2316419*Math.abs(z));
+  var d = 0.3989423*Math.exp(-z*z/2);
+  var p = d*t*(0.3193815 + t*(-0.3565638 + t*(1.781478 + t*(-1.821256 + t*1.330274))));
+  return z > 0 ? 1-p : p;
+}
+function survival(p, targetOverall){
+  if(targetOverall == null) return 0;
+  var sigma = Math.max(p.sd * 1.6, 2.0);
+  return 1 - normCdf((targetOverall - p.ecr) / sigma);
+}
+
+/* ---------------- roster shape ---------------- */
+function fillRoster(players){
+  var c = state.config, s = c.slots;
+  var pool = players.slice().sort(function(a,b){ return b.proj - a.proj; });
+  var used = {}, out = [];
+  function take(pos){
+    for(var i=0;i<pool.length;i++){
+      var p = pool[i];
+      if(used[p.id]) continue;
+      if(pos === "FLEX" ? FLEX_POS.indexOf(p.pos) >= 0 : p.pos === pos){
+        used[p.id] = true; return p;
+      }
+    }
+    return null;
+  }
+  ["QB","RB","WR","TE","FLEX","K","DST"].forEach(function(pos){
+    for(var i=0;i<(s[pos]||0);i++) out.push({ slot:pos, player:take(pos) });
+  });
+  pool.forEach(function(p){ if(!used[p.id]) out.push({ slot:"BN", player:p }); });
+  return out;
+}
+function openStarterSlots(players){
+  var need = {};
+  fillRoster(players).forEach(function(r){
+    if(r.slot !== "BN" && !r.player) need[r.slot] = (need[r.slot]||0) + 1;
+  });
+  return need;
+}
+
+/* ---------------- tiers ---------------- */
+function tierState(available){
+  /* For each position: the best tier still on the board and how many of it is
+     left. That count is what makes "wait or reach" answerable. */
+  var out = {};
+  POS.forEach(function(pos){
+    var list = available.filter(function(p){ return p.pos === pos; });
+    if(!list.length){ out[pos] = null; return; }
+    var top = list[0].tier;
+    var left = list.filter(function(p){ return p.tier === top; });
+    var nextTierBest = null;
+    for(var i=0;i<list.length;i++){ if(list[i].tier > top){ nextTierBest = list[i]; break; } }
+    out[pos] = {
+      tier: top,
+      left: left.length,
+      cliff: nextTierBest ? (left[0].proj - nextTierBest.proj) : 0
+    };
+  });
+  return out;
+}
+
+/* Detect a run: the league is hammering one position right now. */
+function positionRun(){
+  var recent = state.picks.slice(-6);
+  if(recent.length < 5) return null;
+  var counts = {};
+  recent.forEach(function(p){
+    var pl = BY_ID[p.playerId];
+    if(pl) counts[pl.pos] = (counts[pl.pos]||0) + 1;
+  });
+  var best = null;
+  Object.keys(counts).forEach(function(pos){
+    if(["RB","WR","TE","QB"].indexOf(pos) >= 0 && counts[pos] >= 4){
+      if(!best || counts[pos] > counts[best]) best = pos;
+    }
+  });
+  return best ? { pos:best, n:counts[best], of:recent.length } : null;
+}
+
+/* ---------------- recommendation engine ---------------- */
+function recommend(available, forTeamIdx){
+  var mine = picksByTeam(forTeamIdx);
+  var need = openStarterSlots(mine);
+  var tiers = tierState(available);
+  var nextOv = nextPickFor(forTeamIdx, currentOverall() + 1);
+  var run = positionRun();
+
+  var counts = {};
+  mine.forEach(function(p){ counts[p.pos] = (counts[p.pos]||0) + 1; });
+
+  var byeLoad = {};
+  fillRoster(mine).forEach(function(r){
+    if(r.slot !== "BN" && r.player && r.player.bye) byeLoad[r.player.bye] = (byeLoad[r.player.bye]||0) + 1;
+  });
+
+  /* How many picks this team has left, against how many starting slots it still
+     has to fill. The gap is the only slack it has for bench upside — and it is
+     what decides when a kicker stops being a waste of a pick. */
+  var picksLeft = picksRemainingFor(forTeamIdx);
+  var openTotal = Object.keys(need).reduce(function(s,k){ return s + need[k]; }, 0);
+  var slack = picksLeft - openTotal;
+
+  /* Kickers and defenses rank hundreds of picks deep, so a plain "top 90 by
+     consensus" candidate list would not contain one even in the last round.
+     Always carry the best few at every position. */
+  var candidates = available.slice(0, 90);
+  var inList = {};
+  candidates.forEach(function(p){ inList[p.id] = true; });
+  POS.forEach(function(pos){
+    available.filter(function(p){ return p.pos === pos; }).slice(0, 3)
+      .forEach(function(p){ if(!inList[p.id]){ inList[p.id] = true; candidates.push(p); } });
+  });
+
+  var scored = candidates.map(function(p){
+    var v = vorp(p);
+    var reasons = [];
+    var isKD = (p.pos === "K" || p.pos === "DST");
+    var fills = need[p.pos] > 0 || (need.FLEX > 0 && FLEX_POS.indexOf(p.pos) >= 0);
+
+    /* Every top-12 kicker grades out above replacement while a round-12 receiver
+       grades below it, so raw VORP would happily draft four kickers. Marginal
+       value, not VORP, is what actually applies to K and DST: the second one is
+       worth nothing, and the first is worth nothing until you are out of slack. */
+    var mult = 1, block = 0;
+    if(isKD){
+      if(!(need[p.pos] > 0)){
+        return { p:p, score:-1e9, vorp:v, reasons:[], surv:0 };
+      }
+      if(slack > 1){
+        block = 1e6;
+        reasons.push({t:"Too early for "+p.pos, c:"warn"});
+      }
+    } else {
+      /* An unfilled starting slot gets more expensive the fewer picks remain,
+         so the board stops happily leaving a hole at one position all draft. */
+      var urgent = Math.max(0, Math.min(1, (6 - slack) / 6));
+      if(need[p.pos] > 0){
+        mult = 1.18 + urgent;
+        reasons.push({t:"Fills "+p.pos, c:"need"});
+      } else if(need.FLEX > 0 && FLEX_POS.indexOf(p.pos) >= 0){
+        mult = 1.09 + urgent * 0.5;
+        reasons.push({t:"Fills FLEX", c:"need"});
+      } else if(p.pos === "QB" && (counts.QB||0) >= 2){
+        mult = 0.25;
+      } else if((counts[p.pos]||0) >= 5){
+        mult = 0.45;
+      } else {
+        /* Pure depth. A bench player only scores if someone ahead gets hurt, so
+           its value above replacement is worth a fraction of a starter's. */
+        mult = 0.55;
+      }
+      /* Out of slack: from here every pick has to fill a starting slot. */
+      if(slack <= 0 && !fills) block = 1e5;
+    }
+
+    /* Tier urgency: how much you lose if this tier empties before you pick again. */
+    var ts = tiers[p.pos];
+    var surv = survival(p, nextOv);
+    var urgency = 0;
+    if(ts && p.tier === ts.tier && ts.cliff > 0){
+      urgency = (1 - surv) * ts.cliff * 0.6;
+      if(ts.left <= 2 && nextOv){
+        reasons.push({t:"Tier "+ts.tier+" breaking — "+ts.left+" left", c:"urgent"});
+      }
+    }
+    if(nextOv && surv < 0.5){
+      reasons.push({t:Math.round(surv*100)+"% to last to "+roundOf(nextOv)+"."+pad2(pickInRound(nextOv)), c:surv<0.25?"urgent":""});
+    }
+    if(run && run.pos === p.pos){
+      reasons.push({t:run.pos+" run — "+run.n+" of last "+run.of, c:"urgent"});
+    }
+
+    /* Bye stacking: three starters already idle that week is a real problem. */
+    var byePen = 0;
+    if(p.bye && byeLoad[p.bye] >= 3){
+      byePen = 7;
+      reasons.push({t:(byeLoad[p.bye]+1)+" starters on bye "+p.bye, c:"warn"});
+    }
+
+    /* Apply the multiplier to magnitude, not to the signed value. Below
+       replacement level a plain `v * mult` inverts: discounting -40 by 0.25
+       yields -10 and makes the penalised position the most attractive one. */
+    var adj = v >= 0 ? v * mult : v / mult;
+
+    return { p:p, score: adj + urgency - byePen - block, vorp:v, reasons:reasons, surv:surv };
+  });
+
+  scored.sort(function(a,b){ return b.score - a.score; });
+  return scored.slice(0,5);
+}
+
+/* ---------------- rendering ---------------- */
+function pad2(n){ return n < 10 ? "0"+n : ""+n; }
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+var ui = { pos:"ALL", q:"", sort:"ecr", tab:"log" };
+
+function availablePlayers(){
+  var d = draftedIds();
+  return PLAYERS.filter(function(p){ return !d[p.id]; });
+}
+
+function renderClock(){
+  var c = el("clock");
+  var ov = currentOverall();
+  var done = ov > totalPicks();
+  if(done){
+    c.className = "clock";
+    c.innerHTML = '<div class="clock-id"><span class="clock-round">Draft complete</span></div>'
+      + '<div class="clock-actions">'
+      + '<button class="btn" id="btnUndo">Undo last</button>'
+      + '<button class="btn" id="btnExport">Export</button>'
+      + '<button class="btn" id="btnReset">New draft</button></div>';
+    wireClock(); return;
+  }
+  var team = teamOnClock(ov);
+  var mine = team === myTeamIdx();
+  var myNext = myNextOverall();
+  var until = myNext ? myNext - ov : null;
+
+  c.className = "clock" + (mine ? " mine" : "");
+  var nextTxt = "";
+  if(mine) nextTxt = '<span class="clock-next">You are on the clock</span>';
+  else if(myNext != null) nextTxt = '<span class="clock-next">Your next pick <b>'
+      + roundOf(myNext) + "." + pad2(pickInRound(myNext)) + '</b> · <b>' + until + '</b> away</span>';
+  else nextTxt = '<span class="clock-next">No picks left</span>';
+
+  c.innerHTML =
+    '<div class="clock-id">'
+      + '<span class="clock-round">' + roundOf(ov) + "." + pad2(pickInRound(ov)) + '</span>'
+      + '<span class="clock-ov">Pick ' + ov + ' of ' + totalPicks() + '</span>'
+    + '</div>'
+    + '<div class="onclock">'
+      + '<span class="onclock-lbl">On the clock</span>'
+      + '<span class="onclock-team">' + esc(teamName(team)) + '</span>'
+      + (mine ? '<span class="youbadge">You</span>' : '')
+    + '</div>'
+    + nextTxt
+    + '<div class="clock-actions">'
+      + '<button class="btn" id="btnUndo"' + (state.picks.length ? "" : " disabled") + '>Undo</button>'
+      + '<button class="btn" id="btnExport">Export</button>'
+      + '<button class="btn" id="btnSetup">Settings</button>'
+    + '</div>';
+  wireClock();
+}
+function wireClock(){
+  var u = el("btnUndo"), e = el("btnExport"), s = el("btnSetup"), r = el("btnReset");
+  if(u) u.onclick = undoPick;
+  if(e) e.onclick = exportDraft;
+  if(s) s.onclick = function(){ openSetup(true); };
+  if(r) r.onclick = function(){ if(confirm("Start a new draft? This clears every pick.")){ resetDraft(); } };
+}
+
+function filteredBoard(){
+  var list = availablePlayers();
+  var nextOv = myNextOverall();
+  if(ui.pos !== "ALL"){
+    list = ui.pos === "FLEX"
+      ? list.filter(function(p){ return FLEX_POS.indexOf(p.pos) >= 0; })
+      : list.filter(function(p){ return p.pos === ui.pos; });
+  }
+  if(ui.q){
+    var q = ui.q.toLowerCase();
+    list = list.filter(function(p){
+      return p.name.toLowerCase().indexOf(q) >= 0 || (p.team||"").toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  if(ui.sort === "vorp") list.sort(function(a,b){ return vorp(b) - vorp(a); });
+  else if(ui.sort === "proj") list.sort(function(a,b){ return b.proj - a.proj; });
+  else if(ui.sort === "surv") list.sort(function(a,b){ return survival(a,nextOv) - survival(b,nextOv); });
+  else list.sort(function(a,b){ return a.ecr - b.ecr; });
+  return list;
+}
+
+function renderBoard(){
+  var list = filteredBoard();
+  var nextOv = myNextOverall();
+  var tiers = tierState(availablePlayers());
+  var body = el("boardBody");
+  var rows = list.slice(0, 200).map(function(p){
+    var v = vorp(p);
+    var surv = nextOv ? survival(p, nextOv) : null;
+    var pct = surv == null ? null : Math.round(surv*100);
+    var cls = pct == null ? "" : (pct < 25 ? " low" : (pct < 60 ? " mid" : ""));
+    var ts = tiers[p.pos];
+    var breaking = ts && p.tier === ts.tier && ts.left <= 2;
+    return '<tr data-id="' + esc(p.id) + '" tabindex="0">'
+      + '<td class="num pmeta col-rank">' + p.rank + '</td>'
+      + '<td class="name"><div class="pname">' + esc(p.name) + '</div>'
+        + '<div class="pmeta">' + esc(p.team || "FA") + ' · ' + p.pos + esc(String(p.posRank)) + '</div></td>'
+      + '<td><span class="chip chip-' + p.pos + '">' + p.pos + '</span></td>'
+      + '<td class="num pmeta">' + (p.bye || "—") + '</td>'
+      + '<td><span class="tierpill' + (breaking ? " breaking" : "") + '">T' + p.tier
+        + (breaking ? " ·" + ts.left : "") + '</span></td>'
+      + '<td class="num col-proj">' + Math.round(p.proj) + '</td>'
+      + '<td class="num ' + (v > 0 ? "vorp-pos" : "vorp-neg") + '">' + (v > 0 ? "+" : "") + Math.round(v) + '</td>'
+      + '<td>' + (pct == null ? '<span class="pmeta">—</span>'
+        : '<div class="surv"><div class="survbar' + cls + '"><i style="width:' + pct + '%"></i></div>'
+          + '<span class="survtxt">' + pct + '%</span></div>') + '</td>'
+      + '</tr>';
+  }).join("");
+  body.innerHTML = rows;
+  el("boardEmpty").hidden = list.length > 0;
+  el("boardCount").textContent = list.length + " available"
+    + (list.length > 200 ? " · showing 200" : "");
+}
+
+function renderRecs(){
+  var ov = currentOverall();
+  var box = el("recs");
+  if(ov > totalPicks()){ box.innerHTML = '<div class="empty">Draft complete.</div>'; return; }
+  var team = teamOnClock(ov);
+  var mine = team === myTeamIdx();
+  el("recTitle").textContent = mine ? "Recommended For You" : "Best Available";
+  var recs = recommend(filteredBoardForRecs(), team);
+  if(!recs.length){ box.innerHTML = '<div class="empty">No players left.</div>'; return; }
+  box.innerHTML = recs.map(function(r, i){
+    return '<div class="rec" data-id="' + esc(r.p.id) + '">'
+      + '<div class="rec-rk">' + (i+1) + '</div>'
+      + '<div class="rec-body">'
+        + '<div class="rec-top"><span class="rec-name">' + esc(r.p.name) + '</span>'
+        + '<span class="chip chip-' + r.p.pos + '">' + r.p.pos + esc(String(r.p.posRank)) + '</span>'
+        + '<span class="rec-score">' + (r.vorp > 0 ? "+" : "") + Math.round(r.vorp) + '</span></div>'
+        + (r.reasons.length
+            ? '<div class="reasons">' + r.reasons.map(function(x){
+                return '<span class="reason ' + (x.c||"") + '">' + esc(x.t) + '</span>'; }).join("") + '</div>'
+            : "")
+      + '</div></div>';
+  }).join("");
+}
+function filteredBoardForRecs(){
+  /* Recommendations ignore the search box but respect a position filter, so
+     filtering to RB answers "who is the best RB here" directly. */
+  var list = availablePlayers();
+  if(ui.pos !== "ALL"){
+    list = ui.pos === "FLEX"
+      ? list.filter(function(p){ return FLEX_POS.indexOf(p.pos) >= 0; })
+      : list.filter(function(p){ return p.pos === ui.pos; });
+  }
+  return list.sort(function(a,b){ return a.ecr - b.ecr; });
+}
+
+function renderRoster(){
+  var mine = picksByTeam(myTeamIdx());
+  var rows = fillRoster(mine);
+  var byeCount = {};
+  rows.forEach(function(r){
+    if(r.slot !== "BN" && r.player && r.player.bye)
+      byeCount[r.player.bye] = (byeCount[r.player.bye]||0) + 1;
+  });
+  el("rosterCount").textContent = mine.length + " drafted";
+  el("roster").innerHTML = rows.map(function(r){
+    var p = r.player;
+    var clash = p && p.bye && byeCount[p.bye] >= 3 && r.slot !== "BN";
+    return '<div class="slot' + (r.slot === "BN" ? " bench" : "") + '">'
+      + '<span class="slot-lbl">' + r.slot + '</span>'
+      + (p ? '<span>' + esc(p.name) + '</span><span class="chip chip-' + p.pos + '">' + p.pos + '</span>'
+           + '<span class="slot-bye' + (clash ? " clash" : "") + '">' + (p.bye ? "bye " + p.bye : "—") + '</span>'
+           : '<span class="slot-empty">empty</span>')
+      + '</div>';
+  }).join("");
+}
+
+function renderAlerts(){
+  var av = availablePlayers();
+  var tiers = tierState(av);
+  var mine = picksByTeam(myTeamIdx());
+  var need = openStarterSlots(mine);
+  var out = [];
+
+  var run = positionRun();
+  if(run){
+    out.push({ c:"crit", t:run.pos + " run underway",
+      s: run.n + " of the last " + run.of + " picks were " + run.pos + ". Tier prices are rising." });
+  }
+
+  POS.forEach(function(pos){
+    var ts = tiers[pos];
+    if(!ts || ts.left > 2 || ts.cliff < 8) return;
+    if(pos === "K" || pos === "DST") return;
+    out.push({ c: ts.left === 1 ? "crit" : "warn",
+      t: pos + " tier " + ts.tier + " — " + ts.left + " left",
+      s: "Next tier down costs about " + Math.round(ts.cliff) + " projected points." });
+  });
+
+  var byeCount = {};
+  fillRoster(mine).forEach(function(r){
+    if(r.slot !== "BN" && r.player && r.player.bye)
+      byeCount[r.player.bye] = (byeCount[r.player.bye]||0) + 1;
+  });
+  Object.keys(byeCount).forEach(function(w){
+    if(byeCount[w] >= 3) out.push({ c: byeCount[w] >= 4 ? "crit" : "warn",
+      t: byeCount[w] + " starters on bye " + w,
+      s: "You will be short-handed that week." });
+  });
+
+  var needList = Object.keys(need).filter(function(k){ return need[k] > 0; });
+  if(needList.length && state.picks.length){
+    out.push({ c:"info", t:"Still unfilled: " + needList.map(function(k){
+      return need[k] > 1 ? need[k] + "× " + k : k; }).join(", "),
+      s:"Rounds remaining: " + Math.max(state.config.rounds - roundOf(currentOverall()) + 1, 0) });
+  }
+
+  el("alerts").innerHTML = out.length
+    ? out.map(function(a){
+        return '<div class="alert ' + a.c + '"><span class="alert-dot"></span><div><b>'
+          + esc(a.t) + '</b><div class="alert-sub">' + esc(a.s) + '</div></div></div>'; }).join("")
+    : '<div class="empty">Nothing urgent. Take the best player available.</div>';
+}
+
+function renderLog(){
+  var pane = el("paneLog");
+  if(!state.picks.length){
+    pane.innerHTML = '<div class="empty">No picks yet. Click a player on the board to log the pick that is on the clock.</div>';
+  } else {
+    pane.innerHTML = state.picks.slice().reverse().map(function(pk, idx){
+      var p = BY_ID[pk.playerId];
+      var isLast = idx === 0;
+      return '<div class="logrow' + (pk.teamIdx === myTeamIdx() ? " mine" : "") + '">'
+        + '<span class="log-pk">' + roundOf(pk.overall) + "." + pad2(pickInRound(pk.overall)) + '</span>'
+        + '<span class="log-team">' + esc(teamName(pk.teamIdx)) + '</span>'
+        + '<span>' + esc(p ? p.name : "?") + '</span>'
+        + (p ? '<span class="chip chip-' + p.pos + '">' + p.pos + '</span>' : "")
+        + (isLast ? '<button class="log-undo" data-undo="1">undo</button>' : "")
+        + '</div>';
+    }).join("");
+  }
+  var grid = el("paneTeams");
+  var cards = [];
+  for(var i=0;i<state.config.teams;i++){
+    var roster = picksByTeam(i);
+    cards.push('<div class="teamcard' + (i === myTeamIdx() ? " mine" : "") + '">'
+      + '<h3>' + esc(teamName(i)) + (i === myTeamIdx() ? " · you" : "") + '</h3>'
+      + (roster.length
+          ? '<ul>' + roster.map(function(p){
+              return '<li><span class="pos">' + p.pos + '</span><span>' + esc(p.name) + '</span></li>'; }).join("") + '</ul>'
+          : '<div class="pmeta">—</div>')
+      + '</div>');
+  }
+  grid.innerHTML = cards.join("");
+}
+
+function renderFoot(){
+  var m = DATA.meta;
+  el("foot").innerHTML =
+    '<span><b>' + m.playerCount + '</b> players · ' + m.season + ' season</span>'
+    + '<span>Rankings scraped <b>' + esc(m.scrapeDate) + '</b> · ' + esc(m.sources.rankings) + '</span>'
+    + '<span>Byes from <b>' + esc(m.sources.schedule) + '</b></span>'
+    + '<span>Projected points are modeled from positional rank, not per-player stat projections.</span>';
+}
+
+function renderAll(){
+  renderClock(); renderBoard(); renderRecs(); renderRoster(); renderAlerts(); renderLog();
+}
+
+/* ---------------- actions ---------------- */
+function makePick(playerId){
+  var ov = currentOverall();
+  if(ov > totalPicks()) return;
+  if(!BY_ID[playerId]) return;
+  if(draftedIds()[playerId]) return;
+  state.picks.push({ overall:ov, teamIdx:teamOnClock(ov), playerId:playerId });
+  ui.q = ""; el("search").value = "";
+  save(); renderAll();
+}
+function undoPick(){
+  if(!state.picks.length) return;
+  state.picks.pop();
+  save(); renderAll();
+}
+function resetDraft(){
+  state.picks = [];
+  save(); renderAll();
+}
+function exportDraft(){
+  var lines = ["pick,round,team,player,pos,nfl_team,bye"];
+  state.picks.forEach(function(pk){
+    var p = BY_ID[pk.playerId] || {};
+    lines.push([pk.overall, roundOf(pk.overall) + "." + pad2(pickInRound(pk.overall)),
+      '"' + teamName(pk.teamIdx) + '"', '"' + (p.name||"") + '"', p.pos||"", p.team||"", p.bye||""].join(","));
+  });
+  var payload = { config: state.config, picks: state.picks, csv: lines.join("\n") };
+  var txt = JSON.stringify(payload, null, 2);
+  navigator.clipboard && navigator.clipboard.writeText(txt).then(function(){
+    alert("Draft copied to clipboard as JSON (with a CSV field inside).");
+  }, function(){ window.prompt("Copy your draft:", txt); });
+}
+
+/* ---------------- setup ---------------- */
+function renderSlotInputs(slots){
+  el("cfgSlots").innerHTML = ["QB","RB","WR","TE","FLEX","K","DST"].map(function(k){
+    return '<div><label for="slot_' + k + '">' + k + '</label>'
+      + '<input id="slot_' + k + '" type="number" min="0" max="6" value="' + (slots[k]||0) + '"></div>';
+  }).join("");
+}
+function openSetup(isEdit){
+  var c = state ? state.config : defaultConfig();
+  el("cfgTeams").value = c.teams;
+  el("cfgSlot").value = c.slot;
+  el("cfgRounds").value = c.rounds;
+  el("cfgNames").value = (c.names||[]).join(", ");
+  renderSlotInputs(c.slots);
+  el("setupSub").textContent = isEdit
+    ? "Change league settings. Your logged picks are kept."
+    : "Set your league up once, then log every pick as it happens.";
+  el("setupData").innerHTML = "Rankings scraped <b>" + esc(DATA.meta.scrapeDate)
+    + "</b> · " + DATA.meta.playerCount + " players · " + DATA.meta.season + " season.";
+  el("cfgCancel").hidden = !isEdit;
+  el("setupBack").hidden = false;
+  el("cfgTeams").focus();
+}
+function closeSetup(){ el("setupBack").hidden = true; el("search").focus(); }
+function applySetup(){
+  var teams = Math.max(4, Math.min(20, parseInt(el("cfgTeams").value,10) || 12));
+  var slot  = Math.max(1, Math.min(teams, parseInt(el("cfgSlot").value,10) || 1));
+  var rounds= Math.max(1, Math.min(30, parseInt(el("cfgRounds").value,10) || 16));
+  var slots = {};
+  ["QB","RB","WR","TE","FLEX","K","DST"].forEach(function(k){
+    slots[k] = Math.max(0, Math.min(6, parseInt(el("slot_"+k).value,10) || 0));
+  });
+  var names = el("cfgNames").value.split(",").map(function(s){ return s.trim(); });
+  if(!state) state = { config: defaultConfig(), picks: [] };
+  state.config = { teams:teams, slot:slot, rounds:rounds, slots:slots, names:names };
+  state.picks = state.picks.filter(function(p){ return p.overall <= teams*rounds; });
+  save(); closeSetup(); renderAll();
+}
+
+/* ---------------- events ---------------- */
+function bind(){
+  el("boardBody").addEventListener("click", function(e){
+    var tr = e.target.closest("tr[data-id]");
+    if(tr) makePick(tr.getAttribute("data-id"));
+  });
+  el("boardBody").addEventListener("keydown", function(e){
+    if(e.key !== "Enter" && e.key !== " ") return;
+    var tr = e.target.closest("tr[data-id]");
+    if(tr){ e.preventDefault(); makePick(tr.getAttribute("data-id")); }
+  });
+  el("recs").addEventListener("click", function(e){
+    var r = e.target.closest(".rec[data-id]");
+    if(r) makePick(r.getAttribute("data-id"));
+  });
+  el("paneLog").addEventListener("click", function(e){
+    if(e.target.matches("[data-undo]")) undoPick();
+  });
+
+  var search = el("search");
+  search.addEventListener("input", function(){ ui.q = search.value.trim(); renderBoard(); });
+  search.addEventListener("keydown", function(e){
+    if(e.key === "Enter"){
+      var list = filteredBoard();
+      if(list.length) makePick(list[0].id);
+    } else if(e.key === "Escape"){ search.value = ""; ui.q = ""; renderBoard(); }
+  });
+
+  el("posFilter").innerHTML = ["ALL","QB","RB","WR","TE","FLEX","K","DST"].map(function(p){
+    return '<button class="pos-btn" data-pos="' + p + '" aria-pressed="' + (p === "ALL") + '">' + p + '</button>';
+  }).join("");
+  el("posFilter").addEventListener("click", function(e){
+    var b = e.target.closest("[data-pos]");
+    if(!b) return;
+    ui.pos = b.getAttribute("data-pos");
+    Array.prototype.forEach.call(el("posFilter").children, function(x){
+      x.setAttribute("aria-pressed", x === b);
+    });
+    renderBoard(); renderRecs();
+  });
+
+  el("sortSel").addEventListener("change", function(){ ui.sort = el("sortSel").value; renderBoard(); });
+
+  el("tabLog").onclick = function(){ setTab("log"); };
+  el("tabTeams").onclick = function(){ setTab("teams"); };
+
+  el("cfgStart").onclick = applySetup;
+  el("cfgCancel").onclick = closeSetup;
+
+  document.addEventListener("keydown", function(e){
+    if(e.key === "/" && document.activeElement !== search && el("setupBack").hidden){
+      e.preventDefault(); search.focus();
+    }
+    if((e.key === "z" || e.key === "Z") && (e.metaKey || e.ctrlKey)){ e.preventDefault(); undoPick(); }
+  });
+}
+function setTab(which){
+  ui.tab = which;
+  el("tabLog").setAttribute("aria-selected", which === "log");
+  el("tabTeams").setAttribute("aria-selected", which === "teams");
+  el("paneLog").hidden = which !== "log";
+  el("paneTeams").hidden = which !== "teams";
+}
+
+/* ---------------- boot ---------------- */
+function boot(){
+  bind();
+  renderFoot();
+  state = load();
+  if(!state){
+    state = { config: defaultConfig(), picks: [] };
+    openSetup(false);
+  }
+  renderAll();
+  setTab("log");
+}
+
+/* Exposed so the headless simulation can drive the same code path the UI uses. */
+window.__draft = {
+  get state(){ return state; },
+  set state(s){ state = s; },
+  makePick: makePick, undoPick: undoPick, recommend: recommend,
+  teamOnClock: teamOnClock, currentOverall: currentOverall, roundOf: roundOf,
+  pickInRound: pickInRound, availablePlayers: availablePlayers, vorp: vorp,
+  survival: survival, fillRoster: fillRoster, openStarterSlots: openStarterSlots,
+  tierState: tierState, replacementRanks: replacementRanks, myNextOverall: myNextOverall,
+  totalPicks: totalPicks, picksByTeam: picksByTeam, projAtRank: projAtRank
+};
+
+if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
+})();
+</script>
+</body>
+</html>

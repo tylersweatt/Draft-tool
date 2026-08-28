@@ -268,7 +268,7 @@ tr.gone .pname{text-decoration:line-through}
 
 /* ---------- draft order editor ---------- */
 .teamlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;
-  max-height:300px;overflow-y:auto}
+  max-height:min(420px,52vh);overflow-y:auto}
 .trow{
   display:flex;align-items:center;gap:6px;padding:5px 7px;
   background:var(--ground);border:1px solid var(--hairline);border-radius:var(--r);
@@ -355,6 +355,19 @@ tr.gone .pname{text-decoration:line-through}
   .teamsgrid{grid-template-columns:1fr 1fr}
 }
 
+.adv{border-top:1px solid var(--hairline-soft);margin-top:16px;padding-top:12px}
+.adv summary{
+  cursor:pointer;list-style:none;font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-mute);font-weight:600;
+  padding:4px 0;display:flex;align-items:center;gap:7px;
+}
+.adv summary::-webkit-details-marker{display:none}
+.adv summary::before{content:"\25b8";font-size:10px;transition:transform .12s}
+.adv[open] summary::before{transform:rotate(90deg)}
+.adv summary:hover{color:var(--ink-dim)}
+.advbody{padding-top:12px}
+.setup h1{margin-bottom:3px}
+
 /* ---------- touch input sizing ---------- */
 /* iOS Safari force-zooms the page whenever a focused field renders text under
    16px, which is every field here at the denser desktop sizes. Raising them on
@@ -440,26 +453,32 @@ tr.gone .pname{text-decoration:line-through}
   <div class="setup" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
     <h1 id="setupTitle">Draft War Room</h1>
     <p class="sub" id="setupSub"></p>
-    <div class="grid2">
-      <div class="fld"><label for="cfgTeams">Teams</label>
-        <input id="cfgTeams" type="number" min="4" max="20" value="12"></div>
-      <div class="fld"><label for="cfgRounds">Rounds</label>
-        <input id="cfgRounds" type="number" min="1" max="30" value="15"></div>
-    </div>
     <div class="fld"><label>Draft order — slot 1 first</label>
       <ol class="teamlist" id="teamList"></ol>
       <p class="orderhint" id="orderHint"></p></div>
-    <div class="fld"><label>Starting lineup</label>
-      <div class="grid4 slotrow" id="cfgSlots"></div></div>
-    <div class="fld"><label for="cfgPassTd">Points per passing touchdown</label>
-      <select id="cfgPassTd">
-        <option value="4">4 (Yahoo default)</option>
-        <option value="6">6</option>
-      </select></div>
 
-    <div class="fld"><label for="cfgAdp">Yahoo ADP (optional — paste your league's draft board)</label>
-      <textarea id="cfgAdp" rows="3" placeholder="Paste Yahoo&#39;s Draft Analysis table &#8212; 1  Ja&#39;Marr Chase Cin - WR  1.3  1.0  100%"></textarea>
-      <p class="adp-status" id="adpStatus"></p></div>
+    <details class="adv" id="advanced">
+      <summary>League settings</summary>
+      <div class="advbody">
+        <div class="grid2">
+          <div class="fld"><label for="cfgTeams">Teams</label>
+            <input id="cfgTeams" type="number" min="4" max="20" value="12"></div>
+          <div class="fld"><label for="cfgRounds">Rounds</label>
+            <input id="cfgRounds" type="number" min="1" max="30" value="15"></div>
+        </div>
+        <div class="fld"><label>Starting lineup</label>
+          <div class="grid4 slotrow" id="cfgSlots"></div></div>
+        <div class="fld"><label for="cfgPassTd">Points per passing touchdown</label>
+          <select id="cfgPassTd">
+            <option value="4">4 (Yahoo default)</option>
+            <option value="6">6</option>
+          </select></div>
+        <div class="fld"><label for="cfgAdp">Yahoo ADP — paste to replace what shipped</label>
+          <textarea id="cfgAdp" rows="3" placeholder="Paste Yahoo&#39;s Draft Analysis table &#8212; 1  Ja&#39;Marr Chase Cin - WR  1.3  1.0  100%"></textarea>
+          <p class="adp-status" id="adpStatus"></p></div>
+      </div>
+    </details>
+
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-primary" id="cfgStart" style="flex:1;padding:10px">Start Draft</button>
       <button class="btn" id="cfgCancel" hidden>Cancel</button>
@@ -1553,10 +1572,14 @@ function openSetup(isEdit){
   setAdpStatus(have ? have + " players already have Yahoo ADP. Paste again to replace." : "", have ? "ok" : "");
   renderSlotInputs(c.slots);
   el("setupSub").textContent = isEdit
-    ? "Change league settings. Your logged picks are kept."
-    : "Set your league up once, then log every pick as it happens.";
+    ? "Drag the teams into draft order. Your logged picks are kept."
+    : "Put the teams in the order they pick, and star your own.";
   el("setupData").innerHTML = "Rankings scraped <b>" + esc(DATA.meta.scrapeDate)
     + "</b> · " + DATA.meta.playerCount + " players · " + DATA.meta.season + " season.";
+  /* Collapse the settings again on every open: the draft order is the reason
+     to be here, and the rest is set once and left alone. */
+  var adv = el("advanced");
+  if(adv) adv.open = false;
   el("cfgCancel").hidden = !isEdit;
   el("setupBack").hidden = false;
   el("cfgTeams").focus();

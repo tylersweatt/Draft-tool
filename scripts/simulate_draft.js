@@ -65,6 +65,7 @@ function check(name, cond, detail) {
       e.value = v;
       e.dispatchEvent(new Event("input", { bubbles: true }));
     };
+    document.getElementById("advanced").open = true;
     set("cfgTeams", TEAMS);
     set("cfgRounds", ROUNDS);
     // Mark the team at the wanted slot as mine, through the list's own control.
@@ -95,6 +96,39 @@ function check(name, cond, detail) {
   });
   check("slot 5 picks 5th overall", turn.next === 5, "got " + turn.next);
   check("total picks = teams x rounds", turn.total === TEAMS * ROUNDS, "got " + turn.total);
+
+  console.log("\n1a. Setup dialog shape");
+  // Inside a closed <details> Chromium display-locks the subtree but still
+  // returns geometry when asked, so getClientRects reports a visible box for
+  // content nobody can see. checkVisibility accounts for that; a frame is
+  // allowed to pass after toggling so style recalc has settled.
+  const canSee = (sel) => page.evaluate((s) => {
+    const e = document.querySelector(s);
+    return !!(e && e.checkVisibility({ checkVisibilityCSS: true, contentVisibilityAuto: true }));
+  }, sel);
+  const frame = () => page.evaluate(() => new Promise(requestAnimationFrame));
+
+  await page.evaluate(() => document.getElementById("btnSetup").click());
+  await frame();
+  check("the draft order is the first thing on the dialog", await canSee("#teamList"));
+  check("league settings start collapsed",
+    await page.evaluate(() => !document.getElementById("advanced").open));
+  check("collapsed settings are genuinely hidden", (await canSee("#cfgTeams")) === false);
+
+  await page.evaluate(() => { document.getElementById("advanced").open = true; });
+  await frame();
+  check("opening the section reveals the league fields",
+    (await canSee("#cfgTeams")) && (await canSee("#cfgAdp")) && (await canSee("#cfgPassTd")));
+
+  // Reopening the dialog should collapse it again, so the order stays the focus.
+  await page.evaluate(() => {
+    document.getElementById("cfgCancel").click();
+    document.getElementById("btnSetup").click();
+  });
+  await frame();
+  check("reopening the dialog re-collapses the settings",
+    await page.evaluate(() => !document.getElementById("advanced").open));
+  await page.evaluate(() => document.getElementById("cfgCancel").click());
 
   console.log("\n1b. Reordering the draft order");
   const reorder = await page.evaluate(() => {
@@ -543,6 +577,9 @@ function check(name, cond, detail) {
   await tp.goto(URL);
   await tp.waitForFunction(() => window.__draft && window.__draft.state);
   const sizes = await tp.evaluate(() => {
+    // League settings live in a collapsed section now; open it so the fields
+    // are actually laid out when measured.
+    document.getElementById("advanced").open = true;
     const px = (el) => (el ? parseFloat(getComputedStyle(el).fontSize) : null);
     const out = { coarse: matchMedia("(pointer: coarse)").matches, fields: {} };
     out.fields.teams = px(document.getElementById("cfgTeams"));

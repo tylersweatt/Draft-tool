@@ -14,15 +14,16 @@ Open `index.html` in a browser. No server, no build step, no network needed
 once the data file is built — which matters when the draft is happening and
 the wifi isn't.
 
-1. Set teams, rounds, and your starting lineup. This is asked once and
-   remembered.
-2. Put the teams in **draft order, slot 1 first** — drag them, or use the
+1. Put the teams in **draft order, slot 1 first** — drag them, or use the
    ▲▼ buttons. Tap the star on your own team. That order decides who each
    logged pick belongs to, so the dialog names the team your slot lands on to
-   confirm it before the draft rather than after.
-3. As each pick happens, click that player on the board. The pick is credited
+   confirm it before the draft rather than after. This is the whole setup
+   screen; everything else lives under **League settings**, collapsed, because
+   it is set once and then left alone. The section re-collapses each time the
+   dialog opens.
+2. As each pick happens, click that player on the board. The pick is credited
    to whoever is on the clock, and the clock advances through the snake.
-4. When it's your turn, the header goes amber and the right-hand panel ranks
+3. When it's your turn, the header goes amber and the right-hand panel ranks
    your best options with the reasoning behind each.
 
 The snake runs 1→12, then 12→1, so the team at each turn picks back to back.
@@ -126,8 +127,8 @@ and beats whatever shipped, including clearing a designation back to healthy.
 
 Yahoo's Draft Analysis page is login-only and unreachable from a build script,
 so ADP ships in `data/yahoo_adp.json`, transcribed from the league's own page.
-More can be pasted in at setup at any time; a paste always overrides what
-shipped.
+More can be pasted in under **League settings** at any time; a paste always
+overrides what shipped.
 
 Coverage is partial — the top of the board plus the ~95-126 band. Rather than
 mixing measured Yahoo picks with consensus ranks in the same column, which

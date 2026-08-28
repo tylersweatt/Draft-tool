@@ -130,6 +130,41 @@ function check(name, cond, detail) {
     await page.evaluate(() => !document.getElementById("advanced").open));
   await page.evaluate(() => document.getElementById("cfgCancel").click());
 
+  console.log("\n1a2. Manager names");
+  const names = await page.evaluate(() => {
+    const d = window.__draft;
+    const shipped = d.state.config.names;
+
+    // A saved draft still holding the old team titles should be migrated.
+    const legacy = { names: d.LEGACY_NAMES.slice() };
+    d.migrateNames(legacy);
+
+    // One that has been edited must be left exactly as the user left it.
+    const edited = { names: d.LEGACY_NAMES.slice() };
+    edited.names[3] = "Ansleigh";
+    const editedBefore = edited.names.join("|");
+    d.migrateNames(edited);
+
+    return {
+      shipped,
+      unique: new Set(shipped).size,
+      migrated: legacy.names,
+      editedUntouched: edited.names.join("|") === editedBefore,
+    };
+  });
+  check("teams are named for their managers", names.shipped.includes("Tyler")
+    && names.shipped.includes("Ansleigh") && names.shipped.includes("Drewski"),
+    names.shipped.slice(0, 4).join(", "));
+  // Two managers are called Joseph; identical entries would make the draft log
+  // ambiguous about whose pick is whose.
+  check("every name in the list is distinct", names.unique === names.shipped.length,
+    names.unique + " unique of " + names.shipped.length);
+  check("a saved draft on the old team titles is migrated",
+    names.migrated.join("|") === names.shipped.join("|"),
+    names.migrated.slice(0, 3).join(", "));
+  check("a list the user has edited is left alone", names.editedUntouched === true);
+  console.log("        " + names.shipped.join(" · "));
+
   console.log("\n1b. Reordering the draft order");
   const reorder = await page.evaluate(() => {
     const d = window.__draft;

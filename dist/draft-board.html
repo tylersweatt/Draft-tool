@@ -251,7 +251,7 @@ tr.gone .pname{text-decoration:line-through}
 .logrow:last-child{border-bottom:none}
 .logrow.mine{background:rgba(240,168,48,.07)}
 .log-pk{font-family:var(--f-mono);font-size:11px;color:var(--ink-mute);width:44px;flex:none}
-.log-team{font-size:11.5px;color:var(--ink-mute);width:96px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log-team{font-size:11.5px;color:var(--ink-mute);width:118px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .log-undo{margin-left:auto;font-size:11px;color:var(--ink-mute);padding:2px 6px;border-radius:3px}
 .log-undo:hover{color:var(--crit);background:rgba(228,87,46,.12)}
 .teamsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:12px}
@@ -308,7 +308,7 @@ tr.gone .pname{text-decoration:line-through}
 .overridden{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--warn)}
 .log-team-btn{
   background:none;border:1px solid transparent;border-radius:3px;padding:1px 4px;
-  font-size:11.5px;color:var(--ink-mute);width:96px;flex:none;text-align:left;
+  font-size:11.5px;color:var(--ink-mute);width:118px;flex:none;text-align:left;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .log-team-btn:hover{color:var(--ink);border-color:var(--hairline)}
@@ -521,17 +521,32 @@ function load(){
     if(!raw) return null;
     var s = JSON.parse(raw);
     if(!s || !s.config || !Array.isArray(s.picks)) return null;
+    migrateNames(s.config);
     return s;
   }catch(e){ return null; }
+}
+
+/* An earlier build seeded team names from the Yahoo team titles. A saved draft
+   still carrying those untouched defaults is migrated to manager names; a list
+   that has been edited at all is left alone. */
+var LEGACY_NAMES = ["BroadLeaf Brawlers", "Run CMC", "Illegal Flor-mation", "My TD's are Real", "Sir William", "Jack Goff", "La'Car Jackson", "ChatGP TD's", "My team is Boutte", "To Infinity and Bijan", "The Shivas", "Tush Push w/ Bush"];
+function migrateNames(cfg){
+  if(!cfg || !Array.isArray(cfg.names)) return cfg;
+  if(cfg.names.join("|") === LEGACY_NAMES.join("|")) cfg.names = defaultConfig().names;
+  return cfg;
 }
 
 function defaultConfig(){
   return {
     teams:12, slot:1, rounds:15,
     slots:{ QB:1, RB:2, WR:2, TE:1, FLEX:2, K:1, DST:1 },
-    /* JLFF, as listed in Yahoo's standings. That listing is not the draft
-       order, so these are a starting point to be reordered at setup. */
-    names:["BroadLeaf Brawlers", "Run CMC", "Illegal Flor-mation", "My TD's are Real", "Sir William", "Jack Goff", "La'Car Jackson", "ChatGP TD's", "My team is Boutte", "To Infinity and Bijan", "The Shivas", "Tush Push w/ Bush"],
+    /* JLFF managers, in the order Yahoo's standings list them. That listing is
+       not the draft order, so these are a starting point to be reordered at
+       setup. Two managers are named Joseph, so each carries a hint from his
+       team name — with both showing plain "Joseph" there would be no way to
+       tell whose pick is whose in the log. */
+    names:["Bill", "Nathan", "Joseph (Flor)", "Ansleigh", "Billy", "Jeremy",
+            "Joseph (La'Car)", "Nick", "Zach", "Tyler", "Drewski", "Seth"],
     passTd:6, adp:{}, injOverride:{}
   };
 }
@@ -1716,7 +1731,8 @@ window.__draft = {
   tierState: tierState, replacementRanks: replacementRanks, myNextOverall: myNextOverall,
   applyAdp: applyAdp, matchName: matchName, projOf: projOf, curveFor: curveFor,
   adpOf: adpOf, calibratedPick: calibratedPick, expectedPick: expectedPick,
-  isotonic: isotonic, adpAnchors: adpAnchors,
+  isotonic: isotonic, adpAnchors: adpAnchors, migrateNames: migrateNames,
+  LEGACY_NAMES: LEGACY_NAMES,
   moveTeam: moveTeam, renderTeamList: renderTeamList, creditedTeam: creditedTeam, ui: ui,
   toggleWake: toggleWake, wakeSupported: wakeSupported,
   injOf: injOf, injMult: injMult, cycleInj: cycleInj,

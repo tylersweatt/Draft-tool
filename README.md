@@ -41,6 +41,11 @@ Two escape hatches, because a draft room rarely goes exactly to plan:
 Reordering teams in Settings mid-draft is also safe; picks are stored against a
 team, so renaming or reordering does not move them.
 
+Teams are labelled with the manager's name rather than the team title, since
+that is what gets said out loud in the room. Two managers in this league are
+called Joseph, so each carries a short hint from his team name — two identical
+entries would leave the draft log unable to say whose pick was whose.
+
 Everything persists to the browser's local storage, so a refresh or a closed
 tab mid-draft doesn't lose the board.
 

@@ -261,7 +261,11 @@ tr.gone .pname{text-decoration:line-through}
 .setup .sub{color:var(--ink-mute);font-size:12.5px;margin:0 0 18px}
 .fld{margin-bottom:14px}
 .fld label{display:block;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-mute);margin-bottom:5px;font-weight:600}
-.fld input,.fld select{width:100%;background:var(--ground);border:1px solid var(--hairline);border-radius:var(--r);padding:8px 10px}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--ground);border:1px solid var(--hairline);border-radius:var(--r);padding:8px 10px}
+.fld textarea{font-family:var(--f-mono);font-size:12px;resize:vertical}
+.adp-status{font-size:11.5px;color:var(--ink-mute);margin:6px 0 0}
+.adp-status.ok{color:var(--good)}
+.adp-status.bad{color:var(--warn)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .slotrow label{font-size:10px}
@@ -368,8 +372,16 @@ tr.gone .pname{text-decoration:line-through}
       <input id="cfgRounds" type="number" min="1" max="30" value="16"></div>
     <div class="fld"><label>Starting lineup</label>
       <div class="grid4 slotrow" id="cfgSlots"></div></div>
+    <div class="fld"><label for="cfgPassTd">Points per passing touchdown</label>
+      <select id="cfgPassTd">
+        <option value="4">4 (Yahoo default)</option>
+        <option value="6">6</option>
+      </select></div>
     <div class="fld"><label for="cfgNames">Team names (optional, comma separated)</label>
       <input id="cfgNames" type="text" placeholder="Ty, Marcus, Dan, …"></div>
+    <div class="fld"><label for="cfgAdp">Yahoo ADP (optional — paste your league's draft board)</label>
+      <textarea id="cfgAdp" rows="3" placeholder="1. Ja'Marr Chase (CIN - WR) 1.2&#10;2. Jahmyr Gibbs (DET - RB) 2.4"></textarea>
+      <p class="adp-status" id="adpStatus"></p></div>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-primary" id="cfgStart" style="flex:1;padding:10px">Start Draft</button>
       <button class="btn" id="cfgCancel" hidden>Cancel</button>
@@ -416,9 +428,9 @@ function load(){
 
 function defaultConfig(){
   return {
-    teams:12, slot:1, rounds:16,
+    teams:12, slot:1, rounds:15,
     slots:{ QB:1, RB:2, WR:2, TE:1, FLEX:2, K:1, DST:1 },
-    names:[]
+    names:[], passTd:6, adp:{}
   };
 }
 
@@ -464,8 +476,28 @@ function picksByTeam(teamIdx){
 }
 
 /* ---------------- valuation ---------------- */
+/* QB scoring varies by league, so the QB curve is chosen at runtime. A six-point
+   passing TD is worth ~60 points to an elite QB and ~24 to a streamer, which
+   widens the gap between them rather than lifting them evenly. */
+function curveFor(pos){
+  if(pos === "QB" && DATA.qbCurves){
+    var key = String((state && state.config && state.config.passTd) || 4);
+    if(DATA.qbCurves[key]) return DATA.qbCurves[key];
+  }
+  return CURVES[pos];
+}
+/* Projections for QBs are recomputed from the active curve; every other
+   position is fixed at build time. */
+function projOf(p){
+  if(p.pos === "QB") return projAtRank("QB", p.posRank);
+  return p.proj;
+}
+function adpOf(p){
+  var a = state && state.config && state.config.adp;
+  return (a && a[p.id]) || null;
+}
 function projAtRank(pos, rank){
-  var curve = CURVES[pos];
+  var curve = curveFor(pos);
   if(!curve || !rank) return 0;
   if(rank <= curve[0][0]) return curve[0][1];
   for(var i=0;i<curve.length-1;i++){
@@ -501,7 +533,7 @@ function repl(){
 }
 function vorp(p){
   var r = repl()[p.pos];
-  return p.proj - projAtRank(p.pos, r);
+  return projOf(p) - projAtRank(p.pos, r);
 }
 
 /* Probability a player is still on the board at a future pick. Expert-ranking
@@ -514,14 +546,17 @@ function normCdf(z){
 }
 function survival(p, targetOverall){
   if(targetOverall == null) return 0;
+  /* Your leaguemates draft off Yahoo's board, not a national consensus, so
+     centre on Yahoo ADP whenever it has been imported. */
+  var mu = adpOf(p) || p.ecr;
   var sigma = Math.max(p.sd * 1.6, 2.0);
-  return 1 - normCdf((targetOverall - p.ecr) / sigma);
+  return 1 - normCdf((targetOverall - mu) / sigma);
 }
 
 /* ---------------- roster shape ---------------- */
 function fillRoster(players){
   var c = state.config, s = c.slots;
-  var pool = players.slice().sort(function(a,b){ return b.proj - a.proj; });
+  var pool = players.slice().sort(function(a,b){ return projOf(b) - projOf(a); });
   var used = {}, out = [];
   function take(pos){
     for(var i=0;i<pool.length;i++){
@@ -562,7 +597,7 @@ function tierState(available){
     out[pos] = {
       tier: top,
       left: left.length,
-      cliff: nextTierBest ? (left[0].proj - nextTierBest.proj) : 0
+      cliff: nextTierBest ? (projOf(left[0]) - projOf(nextTierBest)) : 0
     };
   });
   return out;
@@ -704,6 +739,49 @@ function recommend(available, forTeamIdx){
   return scored.slice(0,5);
 }
 
+
+/* ---------------- Yahoo ADP import ---------------- */
+var SUFFIX = {jr:1, sr:1, ii:1, iii:1, iv:1, v:1};
+function normName(n){
+  return n.toLowerCase().replace(/'/g,"").replace(/\./g,"").replace(/-/g," ")
+    .split(/\s+/).filter(function(w){ return w && !SUFFIX[w]; }).join(" ");
+}
+/* Yahoo's board can be pasted in a lot of shapes ("1. Bijan Robinson (ATL - RB)
+   3.4", "Bijan Robinson,3.4", tab-separated). Pull the trailing number as the
+   ADP and the leading words as the name, rather than demanding one format. */
+function parseAdp(text){
+  var rows = [];
+  text.split(/\r?\n/).forEach(function(raw){
+    var line = raw.trim();
+    if(!line) return;
+    line = line.replace(/^\d+[.)]?\s+/, "");
+    var nums = line.match(/\d+(?:\.\d+)?/g);
+    if(!nums) return;
+    var adp = parseFloat(nums[nums.length - 1]);
+    if(!(adp > 0 && adp <= 400)) return;
+    var name = line.split(/[(,\t]|\s{2,}/)[0]
+      .replace(/\d+(?:\.\d+)?/g, "")
+      .replace(/\b(QB|RB|WR|TE|K|DEF|DST)\b[\s\S]*$/i, "")
+      .replace(/\s+/g, " ").trim();
+    if(name.split(" ").length >= 2) rows.push({ name:name, adp:adp });
+  });
+  return rows;
+}
+function applyAdp(text){
+  var byName = {};
+  PLAYERS.forEach(function(p){
+    var k = normName(p.name);
+    if(!(k in byName)) byName[k] = p.id;
+  });
+  var map = {}, matched = 0, missed = [];
+  parseAdp(text).forEach(function(r){
+    var id = byName[normName(r.name)];
+    if(id){ map[id] = r.adp; matched++; }
+    else missed.push(r.name);
+  });
+  return { map:map, matched:matched, missed:missed };
+}
+
 /* ---------------- rendering ---------------- */
 /* Expert sheet vs consensus, as a positional-rank gap. Positive means the
    expert sheet is higher on the player than the consensus board is. */
@@ -797,7 +875,7 @@ function filteredBoard(){
     });
   }
   if(ui.sort === "vorp") list.sort(function(a,b){ return vorp(b) - vorp(a); });
-  else if(ui.sort === "proj") list.sort(function(a,b){ return b.proj - a.proj; });
+  else if(ui.sort === "proj") list.sort(function(a,b){ return projOf(b) - projOf(a); });
   else if(ui.sort === "surv") list.sort(function(a,b){ return survival(a,nextOv) - survival(b,nextOv); });
   else list.sort(function(a,b){ return a.ecr - b.ecr; });
   return list;
@@ -818,13 +896,14 @@ function renderBoard(){
     return '<tr data-id="' + esc(p.id) + '" tabindex="0">'
       + '<td class="num pmeta col-rank">' + p.rank + '</td>'
       + '<td class="name"><div class="pname">' + esc(p.name) + '</div>'
-        + '<div class="pmeta">' + esc(p.team || "FA") + ' · ' + p.pos + esc(String(p.posRank)) + '</div></td>'
+        + '<div class="pmeta">' + esc(p.team || "FA") + ' · ' + p.pos + esc(String(p.posRank))
+        + (adpOf(p) ? ' · adp ' + adpOf(p) : "") + '</div></td>'
       + '<td><span class="chip chip-' + p.pos + '">' + p.pos + '</span></td>'
       + '<td class="num pmeta">' + (p.bye || "—") + '</td>'
       + '<td><span class="tierpill' + (breaking ? " breaking" : "") + '">T' + p.tier
         + (breaking ? " ·" + ts.left : "") + '</span></td>'
       + '<td class="col-sbn">' + sbnCell(p) + '</td>'
-      + '<td class="num col-proj">' + Math.round(p.proj) + '</td>'
+      + '<td class="num col-proj">' + Math.round(projOf(p)) + '</td>'
       + '<td class="num ' + (v > 0 ? "vorp-pos" : "vorp-neg") + '">' + (v > 0 ? "+" : "") + Math.round(v) + '</td>'
       + '<td>' + (pct == null ? '<span class="pmeta">—</span>'
         : '<div class="surv"><div class="survbar' + cls + '"><i style="width:' + pct + '%"></i></div>'
@@ -1026,12 +1105,21 @@ function renderSlotInputs(slots){
       + '<input id="slot_' + k + '" type="number" min="0" max="6" value="' + (slots[k]||0) + '"></div>';
   }).join("");
 }
+function setAdpStatus(msg, cls){
+  var e = el("adpStatus");
+  e.textContent = msg || "";
+  e.className = "adp-status" + (cls ? " " + cls : "");
+}
 function openSetup(isEdit){
   var c = state ? state.config : defaultConfig();
   el("cfgTeams").value = c.teams;
   el("cfgSlot").value = c.slot;
   el("cfgRounds").value = c.rounds;
   el("cfgNames").value = (c.names||[]).join(", ");
+  el("cfgPassTd").value = String(c.passTd || 4);
+  el("cfgAdp").value = "";
+  var have = Object.keys(c.adp || {}).length;
+  setAdpStatus(have ? have + " players already have Yahoo ADP. Paste again to replace." : "", have ? "ok" : "");
   renderSlotInputs(c.slots);
   el("setupSub").textContent = isEdit
     ? "Change league settings. Your logged picks are kept."
@@ -1052,8 +1140,25 @@ function applySetup(){
     slots[k] = Math.max(0, Math.min(6, parseInt(el("slot_"+k).value,10) || 0));
   });
   var names = el("cfgNames").value.split(",").map(function(s){ return s.trim(); });
+  var passTd = parseInt(el("cfgPassTd").value, 10) === 6 ? 6 : 4;
+
   if(!state) state = { config: defaultConfig(), picks: [] };
-  state.config = { teams:teams, slot:slot, rounds:rounds, slots:slots, names:names };
+  var adp = state.config.adp || {};
+  var pasted = el("cfgAdp").value.trim();
+  if(pasted){
+    var res = applyAdp(pasted);
+    if(res.matched){
+      adp = res.map;
+      setAdpStatus("Matched " + res.matched + " players"
+        + (res.missed.length ? " · " + res.missed.length + " unmatched" : ""), "ok");
+    } else {
+      setAdpStatus("Could not read any players from that. Each line needs a name and a number.", "bad");
+      return;   // keep the modal open so the paste is not silently lost
+    }
+  }
+
+  state.config = { teams:teams, slot:slot, rounds:rounds, slots:slots,
+                   names:names, passTd:passTd, adp:adp };
   state.picks = state.picks.filter(function(p){ return p.overall <= teams*rounds; });
   save(); closeSetup(); renderAll();
 }
@@ -1144,6 +1249,7 @@ window.__draft = {
   pickInRound: pickInRound, availablePlayers: availablePlayers, vorp: vorp,
   survival: survival, fillRoster: fillRoster, openStarterSlots: openStarterSlots,
   tierState: tierState, replacementRanks: replacementRanks, myNextOverall: myNextOverall,
+  parseAdp: parseAdp, applyAdp: applyAdp, projOf: projOf, curveFor: curveFor,
   totalPicks: totalPicks, picksByTeam: picksByTeam, projAtRank: projAtRank
 };
 

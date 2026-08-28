@@ -5,8 +5,8 @@ picks as they happen, and get a ranked recommendation for your own pick that
 accounts for value over replacement, tier drop-offs, roster need, and bye-week
 collisions.
 
-Built for a **12-team, Full PPR, 2-FLEX** league, but every one of those is
-configurable at setup.
+Built for a **12-team, Full PPR, 2-FLEX, 15-round** Yahoo league with **6-point
+passing touchdowns**, but every one of those is configurable at setup.
 
 ## Using it
 
@@ -36,7 +36,7 @@ top match · `Ctrl/Cmd+Z` undoes the last pick.
 | **SBN** | Second-opinion tier from the SB Nation Full-PPR sheet. `T2 ▲8` means that sheet ranks him 8 spots higher than consensus; `▼` means it fades him |
 | **Proj** | Modeled Full-PPR season points |
 | **VORP** | Points above a replacement-level starter at that position, given your league's size and lineup. This is the number to draft on |
-| **Lasts?** | Probability the player survives until your next pick, from the spread in expert rankings |
+| **Lasts?** | Probability the player survives until your next pick. Centred on Yahoo ADP once imported, otherwise on consensus rank |
 
 ## How the recommendation works
 
@@ -51,6 +51,29 @@ Ranked by value over replacement, then adjusted for:
 - **Marginal value** — a second kicker is worth nothing, and a first one is
   worth nothing until you're out of roster slack. Depth players are discounted
   because they only score if someone ahead of them gets hurt.
+
+## League scoring
+
+Points per passing touchdown is set at setup, because it changes QB value more
+than any other single setting. A six-point passing TD is worth roughly 60 points
+to an elite QB and 24 to a streamer, so it widens the gap between QBs instead of
+lifting them evenly — in simulation it moves the QB1 from round 2 into round 1.
+
+## Yahoo ADP
+
+Optional, and worth pasting in. Survival odds otherwise come from how much
+national experts disagree about a player, but your leaguemates are drafting off
+Yahoo's board. Paste your league's draft-board list into the ADP box at setup
+and the odds re-centre on what your actual room is likely to do.
+
+The parser is deliberately loose about format — it takes the trailing number on
+each line as the ADP and the leading words as the name, so these all work:
+
+```
+1. Ja'Marr Chase (CIN - WR) 1.2
+2  Jahmyr Gibbs  DET RB  2.4
+Puka Nacua,3.5
+```
 
 ## Data
 

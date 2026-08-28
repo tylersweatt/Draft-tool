@@ -56,7 +56,7 @@ function check(name, cond, detail) {
 
   console.log("\n1. Setup and snake ordering");
 
-  const TEAMS = 12, ROUNDS = 16, SLOT = 5;
+  const TEAMS = 12, ROUNDS = 15, SLOT = 5;
   // Drive the real setup form rather than assigning state, so the modal's own
   // open/close path is covered.
   await page.evaluate(({ TEAMS, ROUNDS, SLOT }) => {
@@ -137,7 +137,7 @@ function check(name, cond, detail) {
     };
   });
 
-  check("all 192 picks made", sim.picks === TEAMS * ROUNDS, "got " + sim.picks);
+  check("all " + TEAMS * ROUNDS + " picks made", sim.picks === TEAMS * ROUNDS, "got " + sim.picks);
   check("no player drafted twice", sim.unique === sim.picks, `${sim.unique} unique of ${sim.picks}`);
   check("recommendations never ran dry", sim.recEmpty === 0);
   check("no ordering problems", sim.problems.length === 0, sim.problems.slice(0, 3).join(" | "));
@@ -163,7 +163,7 @@ function check(name, cond, detail) {
   }, TEAMS);
 
   const wrongSize = rosters.filter((r) => r.size !== ROUNDS);
-  check("every team drafted 16 players", wrongSize.length === 0,
+  check("every team drafted " + ROUNDS + " players", wrongSize.length === 0,
     wrongSize.map((r) => `team${r.team}:${r.size}`).join(","));
 
   const unfilled = rosters.filter((r) => r.unfilled.length > 0);
@@ -199,8 +199,62 @@ function check(name, cond, detail) {
   });
   // A team that runs out of slack early legitimately fills K/DST in round 13;
   // what matters is that they never go while real starters are still on offer.
-  check("no K or DST before round 12", kdst.min >= 12, "earliest round " + kdst.min);
+  check("no K or DST before round 11", kdst.min >= 11, "earliest round " + kdst.min);
   check("24 K/DST taken across the league", kdst.count === 24, "got " + kdst.count);
+
+  console.log("\n5b. League scoring and Yahoo ADP");
+  const scoring = await page.evaluate(() => {
+    const d = window.__draft;
+    const qb = window.PLAYER_DATA.players.filter((p) => p.pos === "QB")
+      .sort((a, b) => a.posRank - b.posRank)[0];
+    d.state.config.passTd = 4;
+    const at4 = { proj: d.projOf(qb), vorp: d.vorp(qb) };
+    d.state.config.passTd = 6;
+    const at6 = { proj: d.projOf(qb), vorp: d.vorp(qb) };
+    return { name: qb.name, at4, at6 };
+  });
+  check("6-point passing TDs raise QB projections",
+    scoring.at6.proj > scoring.at4.proj,
+    `${scoring.name} ${scoring.at4.proj} -> ${scoring.at6.proj}`);
+  // The elite QB gains more than replacement level does, so the gap widens.
+  check("6-point passing TDs widen QB value over replacement",
+    scoring.at6.vorp > scoring.at4.vorp,
+    `vorp ${Math.round(scoring.at4.vorp)} -> ${Math.round(scoring.at6.vorp)}`);
+  console.log(`        ${scoring.name}: ${scoring.at4.proj} pts / +${Math.round(scoring.at4.vorp)} vorp at 4pt`
+    + ` -> ${scoring.at6.proj} pts / +${Math.round(scoring.at6.vorp)} vorp at 6pt`);
+
+  const adp = await page.evaluate(() => {
+    const d = window.__draft;
+    // Three shapes Yahoo boards get pasted in, plus a junk line.
+    const text = [
+      "1. Ja'Marr Chase (CIN - WR) 1.2",
+      "2  Jahmyr Gibbs  DET RB  2.4",
+      "Puka Nacua,3.5",
+      "-- not a player --",
+      "4. Bijan Robinson (ATL - RB) 4.1",
+    ].join("\n");
+    const res = d.applyAdp(text);
+    const chase = window.PLAYER_DATA.players.find((p) => p.name === "Ja'Marr Chase");
+    return { matched: res.matched, missed: res.missed, chaseAdp: res.map[chase.id] };
+  });
+  check("ADP parses all three paste formats", adp.matched === 4,
+    "matched " + adp.matched + ", missed " + JSON.stringify(adp.missed));
+  check("ADP values attach to the right player", adp.chaseAdp === 1.2, "got " + adp.chaseAdp);
+
+  const surv = await page.evaluate(() => {
+    const d = window.__draft;
+    const p = window.PLAYER_DATA.players.find((x) => x.name === "Ja'Marr Chase");
+    d.state.config.adp = {};
+    const noAdp = d.survival(p, 20);
+    // Yahoo has him going much later than consensus does.
+    d.state.config.adp = {};
+    d.state.config.adp[p.id] = 40;
+    const withAdp = d.survival(p, 20);
+    d.state.config.adp = {};
+    return { noAdp, withAdp };
+  });
+  check("imported ADP moves the survival estimate", surv.withAdp > surv.noAdp,
+    `${Math.round(surv.noAdp * 100)}% -> ${Math.round(surv.withAdp * 100)}%`);
 
   console.log("\n6. Undo and persistence");
   const undo = await page.evaluate(() => {
@@ -237,7 +291,7 @@ function check(name, cond, detail) {
     clock: (document.getElementById("clock").textContent || "").trim().length > 0,
   }));
   check("board renders rows", rendered.rows > 0, "rows " + rendered.rows);
-  check("roster renders all 16 slots", rendered.slots === 16, "slots " + rendered.slots);
+  check("roster renders all " + ROUNDS + " slots", rendered.slots === ROUNDS, "slots " + rendered.slots);
   check("all 12 team cards render", rendered.teams === 12, "cards " + rendered.teams);
   check("draft log renders", rendered.log > 0, "rows " + rendered.log);
   check("clock renders", rendered.clock);

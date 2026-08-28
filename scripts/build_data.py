@@ -45,6 +45,8 @@ POSITIONS = ["QB", "RB", "WR", "TE", "K", "DST"]
 # expected values, not ceilings, so these sit below what a league winner posts.
 # Anchors are interpolated linearly and decay exponentially past the last one.
 POINT_CURVES = {
+    # Baseline assumes 4 points per passing touchdown. build_qb_curve() rebuilds
+    # this for leagues that pay 6.
     "QB":  [(1, 395), (2, 375), (3, 358), (4, 345), (6, 325), (8, 308),
             (10, 292), (12, 278), (15, 258), (18, 240), (24, 210), (32, 175), (40, 150)],
     "RB":  [(1, 340), (2, 315), (3, 298), (4, 285), (5, 272), (6, 262), (8, 243),
@@ -62,6 +64,25 @@ POINT_CURVES = {
 # Target average tier size, per position. Tier count is derived from this so
 # tiers stay small enough to be actionable ("two left in this tier").
 TIER_SIZE = {"QB": 4, "RB": 5, "WR": 5, "TE": 4, "K": 6, "DST": 6}
+
+
+# Passing touchdowns thrown per season by the Nth-best fantasy QB. A six-point
+# passing TD is worth about 60 extra points to an elite QB and only about 24 to
+# a streamer, so it widens the gap between QBs rather than lifting them evenly —
+# which is what actually moves them up draft boards.
+QB_PASS_TDS = {
+    1: 30, 2: 29, 3: 28, 4: 27, 6: 26, 8: 25, 10: 24,
+    12: 23, 15: 21, 18: 20, 24: 17, 32: 14, 40: 12,
+}
+
+
+def build_qb_curve(pass_td_value):
+    """Rescale the QB curve for a league's passing-touchdown value."""
+    delta = pass_td_value - 4
+    return [
+        (rank, pts + delta * QB_PASS_TDS.get(rank, 12))
+        for rank, pts in POINT_CURVES["QB"]
+    ]
 
 
 def fetch(url):
@@ -340,6 +361,7 @@ def main():
                 "superflex": "DynastyProcess player values",
                 "schedule": "nflverse (real 2026 slate)",
             },
+            "defaultPassTd": 6,
             "note": (
                 "Ranks, standard deviation, best/worst, and bye weeks are real data. "
                 "Projected points are modeled from positional rank using Full-PPR "
@@ -347,6 +369,8 @@ def main():
             ),
         },
         "pointCurves": POINT_CURVES,
+        # Both variants ship so the app can switch scoring without a rebuild.
+        "qbCurves": {"4": build_qb_curve(4), "6": build_qb_curve(6)},
         "players": players,
     }
 

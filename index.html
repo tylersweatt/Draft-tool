@@ -377,8 +377,9 @@ tr.gone .pname{text-decoration:line-through}
         <option value="4">4 (Yahoo default)</option>
         <option value="6">6</option>
       </select></div>
-    <div class="fld"><label for="cfgNames">Team names (optional, comma separated)</label>
-      <input id="cfgNames" type="text" placeholder="Ty, Marcus, Dan, …"></div>
+    <div class="fld"><label for="cfgNames">Teams in draft order — slot 1 first</label>
+      <input id="cfgNames" type="text" placeholder="Ty, Marcus, Dan, …">
+      <p class="adp-status" id="slotEcho"></p></div>
     <div class="fld"><label for="cfgAdp">Yahoo ADP (optional — paste your league's draft board)</label>
       <textarea id="cfgAdp" rows="3" placeholder="1. Ja'Marr Chase (CIN - WR) 1.2&#10;2. Jahmyr Gibbs (DET - RB) 2.4"></textarea>
       <p class="adp-status" id="adpStatus"></p></div>
@@ -430,7 +431,10 @@ function defaultConfig(){
   return {
     teams:12, slot:1, rounds:15,
     slots:{ QB:1, RB:2, WR:2, TE:1, FLEX:2, K:1, DST:1 },
-    names:[], passTd:6, adp:{}
+    /* JLFF, as listed in Yahoo's standings. That listing is not the draft
+       order, so these are a starting point to be reordered at setup. */
+    names:["BroadLeaf Brawlers", "Run CMC", "Illegal Flor-mation", "My TD's are Real", "Sir William", "Jack Goff", "La'Car Jackson", "ChatGP TD's", "My team is Boutte", "To Infinity and Bijan", "The Shivas", "Tush Push w/ Bush"],
+    passTd:6, adp:{}
   };
 }
 
@@ -1105,6 +1109,27 @@ function renderSlotInputs(slots){
       + '<input id="slot_' + k + '" type="number" min="0" max="6" value="' + (slots[k]||0) + '"></div>';
   }).join("");
 }
+/* Team order decides who every logged pick belongs to, so show the mapping
+   while it is being entered rather than after the draft has gone wrong. */
+function updateSlotEcho(){
+  var e = el("slotEcho");
+  if(!e) return;
+  var names = el("cfgNames").value.split(",").map(function(x){ return x.trim(); })
+    .filter(function(x){ return x; });
+  var teams = parseInt(el("cfgTeams").value, 10) || 0;
+  var slot = parseInt(el("cfgSlot").value, 10) || 0;
+  if(!names.length){ e.textContent = ""; e.className = "adp-status"; return; }
+  if(names.length !== teams){
+    e.textContent = names.length + " names for " + teams + " teams.";
+    e.className = "adp-status bad";
+    return;
+  }
+  var mine = names[slot - 1];
+  e.textContent = mine
+    ? "Slot " + slot + " is \u201c" + mine + "\u201d \u2014 that should be your team."
+    : "Slot " + slot + " is outside the league.";
+  e.className = "adp-status" + (mine ? " ok" : " bad");
+}
 function setAdpStatus(msg, cls){
   var e = el("adpStatus");
   e.textContent = msg || "";
@@ -1126,6 +1151,7 @@ function openSetup(isEdit){
     : "Set your league up once, then log every pick as it happens.";
   el("setupData").innerHTML = "Rankings scraped <b>" + esc(DATA.meta.scrapeDate)
     + "</b> · " + DATA.meta.playerCount + " players · " + DATA.meta.season + " season.";
+  updateSlotEcho();
   el("cfgCancel").hidden = !isEdit;
   el("setupBack").hidden = false;
   el("cfgTeams").focus();
@@ -1209,6 +1235,9 @@ function bind(){
   el("tabLog").onclick = function(){ setTab("log"); };
   el("tabTeams").onclick = function(){ setTab("teams"); };
 
+  ["cfgNames","cfgSlot","cfgTeams"].forEach(function(id){
+    el(id).addEventListener("input", updateSlotEcho);
+  });
   el("cfgStart").onclick = applySetup;
   el("cfgCancel").onclick = closeSetup;
 

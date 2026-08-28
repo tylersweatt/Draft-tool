@@ -15,7 +15,10 @@ once the data file is built — which matters when the draft is happening and
 the wifi isn't.
 
 1. Set teams, your draft slot, rounds, and your starting lineup. This is asked
-   once and remembered.
+   once and remembered. **The team-name list must be in draft order, slot 1
+   first** — it decides who each logged pick belongs to. The setup screen echoes
+   which team your slot maps to, so a wrong order is caught before the draft
+   rather than after it.
 2. As each pick happens, click that player on the board. The pick is credited
    to whoever is on the clock, and the clock advances through the snake.
 3. When it's your turn, the header goes amber and the right-hand panel ranks

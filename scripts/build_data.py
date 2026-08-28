@@ -18,6 +18,7 @@ import io
 import json
 import math
 import os
+import re
 import sys
 import urllib.request
 from collections import defaultdict
@@ -100,6 +101,35 @@ def project(pos, rank):
     r_prev, p_prev = curve[-2]
     slope = (p_prev - p_last) / max(r_last - r_prev, 1)
     return round(max(p_last - slope * (rank - r_last), 8.0), 1)
+
+
+SUFFIXES = {"jr", "sr", "ii", "iii", "iv", "v"}
+
+
+def norm_name(name):
+    """Match names across sources: case, punctuation, and generational suffixes."""
+    s = name.lower().replace("'", "").replace(".", "").replace("-", " ")
+    parts = [p for p in re.split(r"\s+", s) if p and p not in SUFFIXES]
+    return " ".join(parts)
+
+
+def load_expert_tiers():
+    """Optional second opinion: a hand-built expert tier sheet in Full PPR.
+
+    Keyed by normalized name per position, with the sheet's own ordering turned
+    into a positional rank so it can be compared against consensus.
+    """
+    path = os.path.join(HERE, os.pardir, "data", "expert_tiers.json")
+    if not os.path.exists(path):
+        return None, {}
+    with open(path) as f:
+        blob = json.load(f)
+    out = {}
+    for pos, players in blob.get("positions", {}).items():
+        ranked = sorted(players.items(), key=lambda kv: kv[1]["order"])
+        for rank, (name, meta) in enumerate(ranked, start=1):
+            out[(pos, norm_name(name))] = {"tier": meta["tier"], "posRank": rank}
+    return blob.get("source"), out
 
 
 def derive_byes(games):
@@ -195,6 +225,10 @@ def main():
     values_rows = read_csv(fetch(VALUES_URL))
     games = read_csv(fetch(GAMES_URL))
 
+    expert_source, expert = load_expert_tiers()
+    if expert:
+        print(f"  expert tiers: {len(expert)} players from {expert_source}", file=sys.stderr)
+
     byes, max_week = derive_byes(games)
     print(f"  schedule: {len(byes)} teams with byes, {max_week} weeks", file=sys.stderr)
 
@@ -269,10 +303,23 @@ def main():
             "posRank": pos_rank,
             "fpPosRank": fp_pos_rank_by_id.get(pid),
             "proj": project(pos, pos_rank),
+            "sbnTier": None,
+            "sbnPosRank": None,
             "ecr1qb": sf.get("ecr_1qb"),
             "ecr2qb": sf.get("ecr_2qb"),
             "age": sf.get("age"),
         })
+
+    # Attach the expert sheet where a name matches.
+    matched = 0
+    for p in players:
+        hit = expert.get((p["pos"], norm_name(p["name"])))
+        if hit:
+            p["sbnTier"] = hit["tier"]
+            p["sbnPosRank"] = hit["posRank"]
+            matched += 1
+    if expert:
+        print(f"  matched {matched} players to the expert sheet", file=sys.stderr)
 
     players.sort(key=lambda p: p["ecr"])
     for i, p in enumerate(players, start=1):
@@ -287,6 +334,7 @@ def main():
             "scrapeDate": scrape_date,
             "generatedAt": __import__("datetime").datetime.utcnow().isoformat() + "Z",
             "playerCount": len(players),
+            "expertSource": expert_source,
             "sources": {
                 "rankings": "FantasyPros consensus ECR via DynastyProcess",
                 "superflex": "DynastyProcess player values",

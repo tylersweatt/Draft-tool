@@ -33,6 +33,7 @@ top match · `Ctrl/Cmd+Z` undoes the last pick.
 | --- | --- |
 | **#** | Consensus overall rank (FantasyPros ECR) |
 | **Tier** | Players grouped by where the experts actually separate them. `T3 ·1` in red means one player left in that tier |
+| **SBN** | Second-opinion tier from the SB Nation Full-PPR sheet. `T2 ▲8` means that sheet ranks him 8 spots higher than consensus; `▼` means it fades him |
 | **Proj** | Modeled Full-PPR season points |
 | **VORP** | Points above a replacement-level starter at that position, given your league's size and lineup. This is the number to draft on |
 | **Lasts?** | Probability the player survives until your next pick, from the spread in expert rankings |
@@ -59,6 +60,7 @@ Ranked by value over replacement, then adjusted for:
 | Bye weeks | [nflverse](https://github.com/nflverse/nfldata) 2026 schedule | Real |
 | Superflex / 2QB ranks | DynastyProcess values | Real |
 | Projected points | Positional rank mapped through Full-PPR expected-value curves | **Modeled** |
+| Second-opinion tiers | SB Nation Full-PPR tier sheet (`reference/`) | Real, hand-built by their analysts |
 
 Projected points are not per-player statistical projections. They are a smooth
 function of positional rank, which is what VORP needs — the gap between the
@@ -70,6 +72,18 @@ Refresh the rankings any time:
 python3 scripts/build_data.py     # rewrites data/players.json and data/players.js
 ```
 
+The two ranking sources are deliberately kept side by side rather than blended.
+Consensus ECR is the spine of the board; the SB Nation sheet is shown as its own
+column so a disagreement stays visible instead of averaging into a number that
+hides it.
+
+To re-parse a new tier sheet:
+
+```sh
+python3 scripts/parse_tiers.py reference/<sheet>.pdf   # writes data/expert_tiers.json
+python3 scripts/build_data.py                          # rejoins it onto the players
+```
+
 ## Repo layout
 
 ```
@@ -77,6 +91,9 @@ index.html               the app
 data/players.json        generated dataset
 data/players.js          same data as a script tag, so file:// works
 scripts/build_data.py    fetches sources, models projections, assigns tiers
+scripts/parse_tiers.py   reads a tier-sheet PDF by glyph coordinates
+data/expert_tiers.json   parsed second-opinion tiers
+reference/               source tier sheets
 scripts/bundle.py        inlines everything into dist/draft-board.html
 scripts/simulate_draft.js headless full-draft verification
 ```

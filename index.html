@@ -156,6 +156,14 @@ td.name{white-space:normal;min-width:150px}
   background:var(--raised);color:var(--ink-dim);border:1px solid var(--hairline);
 }
 .tierpill.breaking{background:rgba(228,87,46,.16);color:#F2825F;border-color:rgba(228,87,46,.4)}
+/* Second opinion from the expert sheet. Neutral unless it disagrees with
+   consensus by enough to be worth a look. */
+.sbnpill{
+  font-family:var(--f-mono);font-size:10px;padding:2px 6px;border-radius:3px;
+  background:var(--raised);color:var(--ink-mute);border:1px solid var(--hairline);
+}
+.sbnpill.up{background:rgba(79,180,119,.15);color:#6FD097;border-color:rgba(79,180,119,.38)}
+.sbnpill.down{background:rgba(232,177,76,.13);color:var(--warn);border-color:rgba(232,177,76,.32)}
 .vorp-pos{color:var(--good);font-weight:600}
 .vorp-neg{color:var(--ink-mute)}
 .surv{display:flex;align-items:center;gap:5px;justify-content:flex-end}
@@ -279,7 +287,7 @@ tr.gone .pname{text-decoration:line-through}
   .tablewrap{max-height:none}
   /* Rank and projected points are the least load-bearing columns; drop them so
      value over replacement and survival stay on screen without scrolling. */
-  .col-rank,.col-proj{display:none}
+  .col-rank,.col-proj,.col-sbn{display:none}
   td.name{min-width:118px}
   .teamsgrid{grid-template-columns:1fr 1fr}
 }
@@ -313,7 +321,7 @@ tr.gone .pname{text-decoration:line-through}
     <div class="tablewrap">
       <table>
         <thead><tr>
-          <th class="col-rank">#</th><th>Player</th><th>Pos</th><th>Bye</th><th>Tier</th>
+          <th class="col-rank">#</th><th>Player</th><th>Pos</th><th>Bye</th><th>Tier</th><th class="col-sbn">SBN</th>
           <th class="r col-proj">Proj</th><th class="r">VORP</th><th class="r">Lasts?</th>
         </tr></thead>
         <tbody id="boardBody"></tbody>
@@ -387,6 +395,8 @@ var FLEX_POS = ["RB","WR","TE"];
 /* Share of FLEX slots each position ends up occupying in Full PPR. Used to
    push replacement level deeper for the positions that actually fill flex. */
 var FLEX_SHARE = { RB:0.33, WR:0.55, TE:0.12 };
+
+var EXPERT = (DATA.meta.expertSource || "Expert").replace(" PPR tiers", "");
 
 var state = null;
 
@@ -668,6 +678,12 @@ function recommend(available, forTeamIdx){
     if(run && run.pos === p.pos){
       reasons.push({t:run.pos+" run — "+run.n+" of last "+run.of, c:"urgent"});
     }
+    var sd = sbnDelta(p);
+    if(sd != null && sd >= 6){
+      reasons.push({t:EXPERT+" T"+p.sbnTier+", "+sd+" spots higher", c:""});
+    } else if(sd != null && sd <= -6){
+      reasons.push({t:EXPERT+" fades him "+Math.abs(sd)+" spots", c:"warn"});
+    }
 
     /* Bye stacking: three starters already idle that week is a real problem. */
     var byePen = 0;
@@ -689,6 +705,20 @@ function recommend(available, forTeamIdx){
 }
 
 /* ---------------- rendering ---------------- */
+/* Expert sheet vs consensus, as a positional-rank gap. Positive means the
+   expert sheet is higher on the player than the consensus board is. */
+function sbnDelta(p){
+  if(!p.sbnPosRank || !p.posRank) return null;
+  return p.posRank - p.sbnPosRank;
+}
+function sbnCell(p){
+  if(!p.sbnTier) return '<span class="pmeta">\u2014</span>';
+  var d = sbnDelta(p);
+  var cls = "", suffix = "";
+  if(d != null && d >= 5){ cls = " up"; suffix = " \u25b2" + d; }
+  else if(d != null && d <= -5){ cls = " down"; suffix = " \u25bc" + Math.abs(d); }
+  return '<span class="sbnpill' + cls + '">T' + p.sbnTier + suffix + '</span>';
+}
 function pad2(n){ return n < 10 ? "0"+n : ""+n; }
 function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s).replace(/[&<>"]/g, function(c){
@@ -793,6 +823,7 @@ function renderBoard(){
       + '<td class="num pmeta">' + (p.bye || "—") + '</td>'
       + '<td><span class="tierpill' + (breaking ? " breaking" : "") + '">T' + p.tier
         + (breaking ? " ·" + ts.left : "") + '</span></td>'
+      + '<td class="col-sbn">' + sbnCell(p) + '</td>'
       + '<td class="num col-proj">' + Math.round(p.proj) + '</td>'
       + '<td class="num ' + (v > 0 ? "vorp-pos" : "vorp-neg") + '">' + (v > 0 ? "+" : "") + Math.round(v) + '</td>'
       + '<td>' + (pct == null ? '<span class="pmeta">—</span>'
@@ -947,6 +978,7 @@ function renderFoot(){
     '<span><b>' + m.playerCount + '</b> players · ' + m.season + ' season</span>'
     + '<span>Rankings scraped <b>' + esc(m.scrapeDate) + '</b> · ' + esc(m.sources.rankings) + '</span>'
     + '<span>Byes from <b>' + esc(m.sources.schedule) + '</b></span>'
+    + (m.expertSource ? '<span>Second-opinion tiers: <b>' + esc(m.expertSource) + '</b> (Full PPR)</span>' : "")
     + '<span>Projected points are modeled from positional rank, not per-player stat projections.</span>';
 }
 

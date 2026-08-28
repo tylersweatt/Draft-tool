@@ -1,0 +1,1265 @@
+{
+ "file": "sbnation-ppr-tiers-2026-08-28.pdf",
+ "positions": {
+  "K": {
+   "Andre Szmyt": {
+    "order": 29,
+    "tier": 2
+   },
+   "Andy Borregales": {
+    "order": 13,
+    "tier": 2
+   },
+   "Ben Sauls": {
+    "order": 24,
+    "tier": 2
+   },
+   "Blake Grupe": {
+    "order": 20,
+    "tier": 2
+   },
+   "Brandon Aubrey": {
+    "order": 1,
+    "tier": 1
+   },
+   "Cairo Santos": {
+    "order": 8,
+    "tier": 2
+   },
+   "Cam Little": {
+    "order": 4,
+    "tier": 2
+   },
+   "Cameron Dicker": {
+    "order": 3,
+    "tier": 2
+   },
+   "Chad Ryland": {
+    "order": 21,
+    "tier": 2
+   },
+   "Charlie Smyth": {
+    "order": 17,
+    "tier": 2
+   },
+   "Chase McLaughlin": {
+    "order": 9,
+    "tier": 2
+   },
+   "Chris Boswell": {
+    "order": 12,
+    "tier": 2
+   },
+   "Drew Stevens": {
+    "order": 30,
+    "tier": 2
+   },
+   "Eddy Pineiro": {
+    "order": 11,
+    "tier": 2
+   },
+   "Evan McPherson": {
+    "order": 7,
+    "tier": 2
+   },
+   "Harrison Butker": {
+    "order": 16,
+    "tier": 2
+   },
+   "Harrison Mevis": {
+    "order": 14,
+    "tier": 2
+   },
+   "Jake Bates": {
+    "order": 10,
+    "tier": 2
+   },
+   "Jake Elliott": {
+    "order": 19,
+    "tier": 2
+   },
+   "Jason Myers": {
+    "order": 5,
+    "tier": 2
+   },
+   "Jason Sanders": {
+    "order": 28,
+    "tier": 2
+   },
+   "Joey Slye": {
+    "order": 26,
+    "tier": 2
+   },
+   "Ka'imi Fairbairn": {
+    "order": 2,
+    "tier": 2
+   },
+   "Matt Gay": {
+    "order": 31,
+    "tier": 2
+   },
+   "Nick Folk": {
+    "order": 23,
+    "tier": 2
+   },
+   "Riley Patterson": {
+    "order": 32,
+    "tier": 2
+   },
+   "Ryan Fitzgerald": {
+    "order": 25,
+    "tier": 2
+   },
+   "Trey Smack": {
+    "order": 27,
+    "tier": 2
+   },
+   "Tyler Bass": {
+    "order": 22,
+    "tier": 2
+   },
+   "Tyler Loop": {
+    "order": 6,
+    "tier": 2
+   },
+   "Wil Lutz": {
+    "order": 15,
+    "tier": 2
+   },
+   "Will Reichard": {
+    "order": 18,
+    "tier": 2
+   }
+  },
+  "QB": {
+   "Aaron Rodgers": {
+    "order": 29,
+    "tier": 6
+   },
+   "Baker Mayfield": {
+    "order": 19,
+    "tier": 5
+   },
+   "Bo Nix": {
+    "order": 14,
+    "tier": 4
+   },
+   "Brock Purdy": {
+    "order": 11,
+    "tier": 4
+   },
+   "Bryce Young": {
+    "order": 27,
+    "tier": 6
+   },
+   "C.J. Stroud": {
+    "order": 24,
+    "tier": 6
+   },
+   "Caleb Williams": {
+    "order": 8,
+    "tier": 3
+   },
+   "Cam Ward": {
+    "order": 26,
+    "tier": 6
+   },
+   "Dak Prescott": {
+    "order": 9,
+    "tier": 3
+   },
+   "Daniel Jones": {
+    "order": 23,
+    "tier": 5
+   },
+   "Deshaun Watson": {
+    "order": 35,
+    "tier": 7
+   },
+   "Drake Maye": {
+    "order": 3,
+    "tier": 2
+   },
+   "Fernando Mendoza": {
+    "order": 30,
+    "tier": 7
+   },
+   "Geno Smith": {
+    "order": 28,
+    "tier": 6
+   },
+   "Jacoby Brissett": {
+    "order": 25,
+    "tier": 6
+   },
+   "Jalen Hurts": {
+    "order": 5,
+    "tier": 2
+   },
+   "Jared Goff": {
+    "order": 15,
+    "tier": 4
+   },
+   "Jaxson Dart": {
+    "order": 12,
+    "tier": 4
+   },
+   "Jayden Daniels": {
+    "order": 7,
+    "tier": 2
+   },
+   "Joe Burrow": {
+    "order": 4,
+    "tier": 2
+   },
+   "Jordan Love": {
+    "order": 17,
+    "tier": 4
+   },
+   "Josh Allen": {
+    "order": 1,
+    "tier": 1
+   },
+   "Justin Herbert": {
+    "order": 6,
+    "tier": 2
+   },
+   "Kirk Cousins": {
+    "order": 33,
+    "tier": 7
+   },
+   "Kyler Murray": {
+    "order": 16,
+    "tier": 4
+   },
+   "Lamar Jackson": {
+    "order": 2,
+    "tier": 2
+   },
+   "Malik Willis": {
+    "order": 21,
+    "tier": 5
+   },
+   "Matthew Stafford": {
+    "order": 13,
+    "tier": 4
+   },
+   "Michael Penix Jr.": {
+    "order": 31,
+    "tier": 7
+   },
+   "Patrick Mahomes II": {
+    "order": 18,
+    "tier": 5
+   },
+   "Sam Darnold": {
+    "order": 22,
+    "tier": 5
+   },
+   "Shedeur Sanders": {
+    "order": 34,
+    "tier": 7
+   },
+   "Trevor Lawrence": {
+    "order": 10,
+    "tier": 3
+   },
+   "Tua Tagovailoa": {
+    "order": 32,
+    "tier": 7
+   },
+   "Tyler Shough": {
+    "order": 20,
+    "tier": 5
+   }
+  },
+  "RB": {
+   "Aaron Jones Sr.": {
+    "order": 43,
+    "tier": 5
+   },
+   "Adam Randall": {
+    "order": 95,
+    "tier": 7
+   },
+   "Alvin Kamara": {
+    "order": 52,
+    "tier": 6
+   },
+   "Ashton Jeanty": {
+    "order": 7,
+    "tier": 2
+   },
+   "Audric Estime": {
+    "order": 92,
+    "tier": 7
+   },
+   "Bam Knight": {
+    "order": 89,
+    "tier": 7
+   },
+   "Bhayshul Tuten": {
+    "order": 26,
+    "tier": 4
+   },
+   "Bijan Robinson": {
+    "order": 2,
+    "tier": 1
+   },
+   "Blake Corum": {
+    "order": 36,
+    "tier": 5
+   },
+   "Braelon Allen": {
+    "order": 56,
+    "tier": 6
+   },
+   "Brashard Smith": {
+    "order": 80,
+    "tier": 7
+   },
+   "Breece Hall": {
+    "order": 13,
+    "tier": 3
+   },
+   "Brian Robinson Jr.": {
+    "order": 59,
+    "tier": 7
+   },
+   "Bucky Irving": {
+    "order": 20,
+    "tier": 3
+   },
+   "Cam Skattebo": {
+    "order": 25,
+    "tier": 4
+   },
+   "Chase Brown": {
+    "order": 9,
+    "tier": 2
+   },
+   "Chris Brooks": {
+    "order": 86,
+    "tier": 7
+   },
+   "Chris Rodriguez Jr.": {
+    "order": 38,
+    "tier": 5
+   },
+   "Christian McCaffrey": {
+    "order": 3,
+    "tier": 2
+   },
+   "Chuba Hubbard": {
+    "order": 42,
+    "tier": 5
+   },
+   "D'Andre Swift": {
+    "order": 19,
+    "tier": 3
+   },
+   "DJ Giddens": {
+    "order": 82,
+    "tier": 7
+   },
+   "David Montgomery": {
+    "order": 24,
+    "tier": 4
+   },
+   "De'Von Achane": {
+    "order": 10,
+    "tier": 2
+   },
+   "Demond Claiborne": {
+    "order": 76,
+    "tier": 7
+   },
+   "Derrick Henry": {
+    "order": 12,
+    "tier": 3
+   },
+   "Devin Neal": {
+    "order": 70,
+    "tier": 7
+   },
+   "Devin Singletary": {
+    "order": 87,
+    "tier": 7
+   },
+   "Dylan Sampson": {
+    "order": 39,
+    "tier": 5
+   },
+   "Emanuel Wilson": {
+    "order": 63,
+    "tier": 7
+   },
+   "Emari Demercado": {
+    "order": 97,
+    "tier": 7
+   },
+   "Emmett Johnson": {
+    "order": 57,
+    "tier": 6
+   },
+   "George Holani": {
+    "order": 66,
+    "tier": 7
+   },
+   "Isaac Guerendo": {
+    "order": 85,
+    "tier": 7
+   },
+   "Isaiah Davis": {
+    "order": 67,
+    "tier": 7
+   },
+   "Isiah Pacheco": {
+    "order": 49,
+    "tier": 6
+   },
+   "J.K. Dobbins": {
+    "order": 37,
+    "tier": 5
+   },
+   "Jacory Croskey-Merritt": {
+    "order": 35,
+    "tier": 5
+   },
+   "Jadarian Price": {
+    "order": 23,
+    "tier": 4
+   },
+   "Jahmyr Gibbs": {
+    "order": 1,
+    "tier": 1
+   },
+   "Jaleel McLaughlin": {
+    "order": 88,
+    "tier": 7
+   },
+   "James Conner": {
+    "order": 64,
+    "tier": 7
+   },
+   "James Cook III": {
+    "order": 6,
+    "tier": 2
+   },
+   "Jarquez Hunter": {
+    "order": 93,
+    "tier": 7
+   },
+   "Javonte Williams": {
+    "order": 15,
+    "tier": 3
+   },
+   "Jaydon Blue": {
+    "order": 72,
+    "tier": 7
+   },
+   "Jaylen Warren": {
+    "order": 30,
+    "tier": 5
+   },
+   "Jaylen Wright": {
+    "order": 65,
+    "tier": 7
+   },
+   "Jeremiyah Love": {
+    "order": 18,
+    "tier": 3
+   },
+   "Jerome Ford": {
+    "order": 81,
+    "tier": 7
+   },
+   "Jonah Coleman": {
+    "order": 44,
+    "tier": 5
+   },
+   "Jonathan Taylor": {
+    "order": 4,
+    "tier": 2
+   },
+   "Jonathon Brooks": {
+    "order": 31,
+    "tier": 5
+   },
+   "Jordan James": {
+    "order": 84,
+    "tier": 7
+   },
+   "Jordan Mason": {
+    "order": 33,
+    "tier": 5
+   },
+   "Josh Jacobs": {
+    "order": 14,
+    "tier": 3
+   },
+   "Justice Hill": {
+    "order": 73,
+    "tier": 7
+   },
+   "Kaelon Black": {
+    "order": 79,
+    "tier": 7
+   },
+   "Kaleb Johnson": {
+    "order": 75,
+    "tier": 7
+   },
+   "Kaytron Allen": {
+    "order": 74,
+    "tier": 7
+   },
+   "Keaton Mitchell": {
+    "order": 34,
+    "tier": 5
+   },
+   "Kendre Miller": {
+    "order": 78,
+    "tier": 7
+   },
+   "Kenneth Walker III": {
+    "order": 11,
+    "tier": 2
+   },
+   "Kenny Gainwell": {
+    "order": 46,
+    "tier": 6
+   },
+   "Kimani Vidal": {
+    "order": 58,
+    "tier": 7
+   },
+   "Kyle Monangai": {
+    "order": 40,
+    "tier": 5
+   },
+   "Kyren Williams": {
+    "order": 16,
+    "tier": 3
+   },
+   "LeQuint Allen Jr.": {
+    "order": 83,
+    "tier": 7
+   },
+   "Malik Davis": {
+    "order": 71,
+    "tier": 7
+   },
+   "MarShawn Lloyd": {
+    "order": 50,
+    "tier": 6
+   },
+   "Mike Washington Jr.": {
+    "order": 55,
+    "tier": 6
+   },
+   "Najee Harris": {
+    "order": 77,
+    "tier": 7
+   },
+   "Nicholas Singleton": {
+    "order": 61,
+    "tier": 7
+   },
+   "Ollie Gordon II": {
+    "order": 68,
+    "tier": 7
+   },
+   "Omarion Hampton": {
+    "order": 8,
+    "tier": 2
+   },
+   "Quinshon Judkins": {
+    "order": 21,
+    "tier": 4
+   },
+   "RJ Harvey": {
+    "order": 32,
+    "tier": 5
+   },
+   "Rachaad White": {
+    "order": 47,
+    "tier": 6
+   },
+   "Ray Davis": {
+    "order": 53,
+    "tier": 6
+   },
+   "Rhamondre Stevenson": {
+    "order": 28,
+    "tier": 4
+   },
+   "Rico Dowdle": {
+    "order": 29,
+    "tier": 5
+   },
+   "Roschon Johnson": {
+    "order": 100,
+    "tier": 7
+   },
+   "Samaje Perine": {
+    "order": 94,
+    "tier": 7
+   },
+   "Saquon Barkley": {
+    "order": 5,
+    "tier": 2
+   },
+   "Sean Tucker": {
+    "order": 62,
+    "tier": 7
+   },
+   "Seth McGowan": {
+    "order": 96,
+    "tier": 7
+   },
+   "Tahj Brooks": {
+    "order": 98,
+    "tier": 7
+   },
+   "Tank Bigsby": {
+    "order": 45,
+    "tier": 6
+   },
+   "Tony Pollard": {
+    "order": 27,
+    "tier": 4
+   },
+   "Travis Etienne Jr.": {
+    "order": 17,
+    "tier": 3
+   },
+   "TreVeyon Henderson": {
+    "order": 22,
+    "tier": 4
+   },
+   "Trevor Etienne": {
+    "order": 91,
+    "tier": 7
+   },
+   "Trey Benson": {
+    "order": 90,
+    "tier": 7
+   },
+   "Ty Johnson": {
+    "order": 69,
+    "tier": 7
+   },
+   "Tyjae Spears": {
+    "order": 60,
+    "tier": 7
+   },
+   "Tyler Allgeier": {
+    "order": 48,
+    "tier": 6
+   },
+   "Tyrone Tracy Jr.": {
+    "order": 54,
+    "tier": 6
+   },
+   "Will Shipley": {
+    "order": 99,
+    "tier": 7
+   },
+   "Woody Marks": {
+    "order": 41,
+    "tier": 5
+   },
+   "Zach Charbonnet": {
+    "order": 51,
+    "tier": 6
+   }
+  },
+  "TE": {
+   "AJ Barner": {
+    "order": 24,
+    "tier": 5
+   },
+   "Brenton Strange": {
+    "order": 17,
+    "tier": 4
+   },
+   "Brock Bowers": {
+    "order": 1,
+    "tier": 1
+   },
+   "Cade Otton": {
+    "order": 34,
+    "tier": 6
+   },
+   "Chig Okonkwo": {
+    "order": 22,
+    "tier": 5
+   },
+   "Colby Parkinson": {
+    "order": 33,
+    "tier": 6
+   },
+   "Colston Loveland": {
+    "order": 3,
+    "tier": 2
+   },
+   "Dallas Goedert": {
+    "order": 12,
+    "tier": 4
+   },
+   "Dalton Kincaid": {
+    "order": 9,
+    "tier": 3
+   },
+   "Dalton Schultz": {
+    "order": 19,
+    "tier": 4
+   },
+   "Darnell Washington": {
+    "order": 31,
+    "tier": 6
+   },
+   "Darren Waller": {
+    "order": 40,
+    "tier": 7
+   },
+   "David Njoku": {
+    "order": 26,
+    "tier": 5
+   },
+   "Eli Stowers": {
+    "order": 38,
+    "tier": 7
+   },
+   "Elijah Arroyo": {
+    "order": 44,
+    "tier": 7
+   },
+   "Evan Engram": {
+    "order": 35,
+    "tier": 6
+   },
+   "George Kittle": {
+    "order": 10,
+    "tier": 3
+   },
+   "Greg Dulcich": {
+    "order": 27,
+    "tier": 5
+   },
+   "Gunnar Helm": {
+    "order": 25,
+    "tier": 5
+   },
+   "Harold Fannin Jr.": {
+    "order": 7,
+    "tier": 3
+   },
+   "Hunter Henry": {
+    "order": 18,
+    "tier": 4
+   },
+   "Isaiah Likely": {
+    "order": 13,
+    "tier": 4
+   },
+   "Jake Ferguson": {
+    "order": 15,
+    "tier": 4
+   },
+   "Jake Tonges": {
+    "order": 37,
+    "tier": 7
+   },
+   "Juwan Johnson": {
+    "order": 11,
+    "tier": 3
+   },
+   "Kenyon Sadiq": {
+    "order": 28,
+    "tier": 5
+   },
+   "Kyle Pitts Sr.": {
+    "order": 6,
+    "tier": 2
+   },
+   "Mark Andrews": {
+    "order": 16,
+    "tier": 4
+   },
+   "Mason Taylor": {
+    "order": 30,
+    "tier": 6
+   },
+   "Michael Mayer": {
+    "order": 43,
+    "tier": 7
+   },
+   "Mike Gesicki": {
+    "order": 36,
+    "tier": 6
+   },
+   "Noah Gray": {
+    "order": 41,
+    "tier": 7
+   },
+   "Oronde Gadsden II": {
+    "order": 23,
+    "tier": 5
+   },
+   "Oscar Delp": {
+    "order": 42,
+    "tier": 7
+   },
+   "Pat Freiermuth": {
+    "order": 29,
+    "tier": 6
+   },
+   "Sam LaPorta": {
+    "order": 8,
+    "tier": 3
+   },
+   "T.J. Hockenson": {
+    "order": 20,
+    "tier": 4
+   },
+   "Terrance Ferguson": {
+    "order": 21,
+    "tier": 5
+   },
+   "Theo Johnson": {
+    "order": 32,
+    "tier": 6
+   },
+   "Tommy Myers": {
+    "order": 39,
+    "tier": 7
+   },
+   "Travis Kelce": {
+    "order": 14,
+    "tier": 4
+   },
+   "Trey McBride": {
+    "order": 2,
+    "tier": 1
+   },
+   "Tucker Kraft": {
+    "order": 5,
+    "tier": 2
+   },
+   "Tyler Higbee": {
+    "order": 45,
+    "tier": 7
+   },
+   "Tyler Warren": {
+    "order": 4,
+    "tier": 2
+   }
+  },
+  "WR": {
+   "A.J. Brown": {
+    "order": 8,
+    "tier": 2
+   },
+   "Adonai Mitchell": {
+    "order": 60,
+    "tier": 6
+   },
+   "Alec Pierce": {
+    "order": 41,
+    "tier": 5
+   },
+   "Amon-Ra St. Brown": {
+    "order": 4,
+    "tier": 1
+   },
+   "Antonio Williams": {
+    "order": 96,
+    "tier": 7
+   },
+   "Brandon Aiyuk": {
+    "order": 81,
+    "tier": 7
+   },
+   "Brian Thomas Jr.": {
+    "order": 34,
+    "tier": 5
+   },
+   "Calvin Ridley": {
+    "order": 85,
+    "tier": 7
+   },
+   "Carnell Tate": {
+    "order": 37,
+    "tier": 5
+   },
+   "CeeDee Lamb": {
+    "order": 5,
+    "tier": 2
+   },
+   "Chimere Dike": {
+    "order": 82,
+    "tier": 7
+   },
+   "Chris Bell": {
+    "order": 99,
+    "tier": 7
+   },
+   "Chris Godwin Jr.": {
+    "order": 36,
+    "tier": 5
+   },
+   "Chris Olave": {
+    "order": 9,
+    "tier": 2
+   },
+   "Christian Kirk": {
+    "order": 100,
+    "tier": 7
+   },
+   "Christian Watson": {
+    "order": 27,
+    "tier": 4
+   },
+   "Cooper Kupp": {
+    "order": 86,
+    "tier": 7
+   },
+   "Courtland Sutton": {
+    "order": 30,
+    "tier": 4
+   },
+   "Cyrus Allen": {
+    "order": 66,
+    "tier": 7
+   },
+   "DJ Moore": {
+    "order": 31,
+    "tier": 4
+   },
+   "DK Metcalf": {
+    "order": 32,
+    "tier": 4
+   },
+   "Darius Slayton": {
+    "order": 92,
+    "tier": 7
+   },
+   "Darnell Mooney": {
+    "order": 77,
+    "tier": 7
+   },
+   "Davante Adams": {
+    "order": 25,
+    "tier": 4
+   },
+   "De'Zhaun Stribling": {
+    "order": 49,
+    "tier": 6
+   },
+   "DeVonta Smith": {
+    "order": 11,
+    "tier": 2
+   },
+   "Deebo Samuel Sr.": {
+    "order": 50,
+    "tier": 6
+   },
+   "Denzel Boston": {
+    "order": 65,
+    "tier": 7
+   },
+   "Devaughn Vele": {
+    "order": 98,
+    "tier": 7
+   },
+   "Dontayvion Wicks": {
+    "order": 78,
+    "tier": 7
+   },
+   "Drake London": {
+    "order": 7,
+    "tier": 2
+   },
+   "Elic Ayomanor": {
+    "order": 80,
+    "tier": 7
+   },
+   "Emeka Egbuka": {
+    "order": 22,
+    "tier": 3
+   },
+   "Garrett Wilson": {
+    "order": 18,
+    "tier": 3
+   },
+   "George Pickens": {
+    "order": 12,
+    "tier": 3
+   },
+   "Germie Bernard": {
+    "order": 79,
+    "tier": 7
+   },
+   "Isaac TeSlaa": {
+    "order": 76,
+    "tier": 7
+   },
+   "Ja'Marr Chase": {
+    "order": 1,
+    "tier": 1
+   },
+   "Jack Bech": {
+    "order": 97,
+    "tier": 7
+   },
+   "Jakobi Meyers": {
+    "order": 42,
+    "tier": 5
+   },
+   "Jalen Coker": {
+    "order": 54,
+    "tier": 6
+   },
+   "Jalen McMillan": {
+    "order": 68,
+    "tier": 7
+   },
+   "Jalen Nailor": {
+    "order": 75,
+    "tier": 7
+   },
+   "Jameson Williams": {
+    "order": 23,
+    "tier": 3
+   },
+   "Jauan Jennings": {
+    "order": 67,
+    "tier": 7
+   },
+   "Jaxon Smith-Njigba": {
+    "order": 3,
+    "tier": 1
+   },
+   "Jayden Reed": {
+    "order": 43,
+    "tier": 5
+   },
+   "Jaylen Waddle": {
+    "order": 19,
+    "tier": 3
+   },
+   "Jaylin Noel": {
+    "order": 62,
+    "tier": 7
+   },
+   "Jerry Jeudy": {
+    "order": 70,
+    "tier": 7
+   },
+   "Jordan Addison": {
+    "order": 44,
+    "tier": 5
+   },
+   "Jordyn Tyson": {
+    "order": 47,
+    "tier": 6
+   },
+   "Josh Downs": {
+    "order": 45,
+    "tier": 5
+   },
+   "Justin Jefferson": {
+    "order": 6,
+    "tier": 2
+   },
+   "KC Concepcion": {
+    "order": 56,
+    "tier": 6
+   },
+   "Kayshon Boutte": {
+    "order": 63,
+    "tier": 7
+   },
+   "Keenan Allen": {
+    "order": 95,
+    "tier": 7
+   },
+   "Keon Coleman": {
+    "order": 84,
+    "tier": 7
+   },
+   "Khalil Shakir": {
+    "order": 53,
+    "tier": 6
+   },
+   "Kyle Williams": {
+    "order": 94,
+    "tier": 7
+   },
+   "Ladd McConkey": {
+    "order": 15,
+    "tier": 3
+   },
+   "Luther Burden III": {
+    "order": 20,
+    "tier": 3
+   },
+   "Mack Hollins": {
+    "order": 90,
+    "tier": 7
+   },
+   "Makai Lemon": {
+    "order": 57,
+    "tier": 6
+   },
+   "Malik Nabers": {
+    "order": 14,
+    "tier": 3
+   },
+   "Malik Washington": {
+    "order": 74,
+    "tier": 7
+   },
+   "Marvin Harrison Jr.": {
+    "order": 33,
+    "tier": 4
+   },
+   "Marvin Mims Jr.": {
+    "order": 87,
+    "tier": 7
+   },
+   "Matthew Golden": {
+    "order": 55,
+    "tier": 6
+   },
+   "Michael Pittman Jr.": {
+    "order": 38,
+    "tier": 5
+   },
+   "Michael Wilson": {
+    "order": 39,
+    "tier": 5
+   },
+   "Mike Evans": {
+    "order": 26,
+    "tier": 4
+   },
+   "Nico Collins": {
+    "order": 10,
+    "tier": 2
+   },
+   "Omar Cooper Jr.": {
+    "order": 72,
+    "tier": 7
+   },
+   "Parker Washington": {
+    "order": 29,
+    "tier": 4
+   },
+   "Pat Bryant": {
+    "order": 59,
+    "tier": 6
+   },
+   "Puka Nacua": {
+    "order": 2,
+    "tier": 1
+   },
+   "Quentin Johnston": {
+    "order": 35,
+    "tier": 5
+   },
+   "Rashee Rice": {
+    "order": 13,
+    "tier": 3
+   },
+   "Rashid Shaheed": {
+    "order": 51,
+    "tier": 6
+   },
+   "Rashod Bateman": {
+    "order": 83,
+    "tier": 7
+   },
+   "Rome Odunze": {
+    "order": 28,
+    "tier": 4
+   },
+   "Romeo Doubs": {
+    "order": 48,
+    "tier": 6
+   },
+   "Ryan Flournoy": {
+    "order": 61,
+    "tier": 6
+   },
+   "Stefon Diggs": {
+    "order": 40,
+    "tier": 5
+   },
+   "Tank Dell": {
+    "order": 71,
+    "tier": 7
+   },
+   "Tee Higgins": {
+    "order": 17,
+    "tier": 3
+   },
+   "Terry McLaurin": {
+    "order": 24,
+    "tier": 4
+   },
+   "Tetairoa McMillan": {
+    "order": 21,
+    "tier": 3
+   },
+   "Tory Horton": {
+    "order": 88,
+    "tier": 7
+   },
+   "Travis Hunter": {
+    "order": 69,
+    "tier": 7
+   },
+   "Tre Tucker": {
+    "order": 58,
+    "tier": 6
+   },
+   "Tre' Harris": {
+    "order": 64,
+    "tier": 7
+   },
+   "Troy Franklin": {
+    "order": 73,
+    "tier": 7
+   },
+   "Tyquan Thornton": {
+    "order": 91,
+    "tier": 7
+   },
+   "Wan'Dale Robinson": {
+    "order": 46,
+    "tier": 6
+   },
+   "Xavier Legette": {
+    "order": 89,
+    "tier": 7
+   },
+   "Xavier Worthy": {
+    "order": 52,
+    "tier": 6
+   },
+   "Zachariah Branch": {
+    "order": 93,
+    "tier": 7
+   },
+   "Zay Flowers": {
+    "order": 16,
+    "tier": 3
+   }
+  }
+ },
+ "scoring": "Full PPR",
+ "source": "SB Nation PPR tiers"
+}

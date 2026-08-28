@@ -401,6 +401,75 @@ function check(name, cond, detail) {
   check("a pasted ADP overrides the shipped one", surv.withAdp > surv.noAdp,
     `${Math.round(surv.noAdp * 100)}% -> ${Math.round(surv.withAdp * 100)}%`);
 
+  console.log("\n5c. Injury designations");
+  const inj = await page.evaluate(() => {
+    const d = window.__draft;
+    const P = window.PLAYER_DATA.players;
+    const find = (n) => P.find((p) => p.name === n);
+
+    const charbonnet = find("Zach Charbonnet");   // PUP
+    const chase = find("Ja'Marr Chase");          // Q
+    const gibbs = find("Jahmyr Gibbs");           // healthy
+
+    const shipped = P.filter((p) => p.inj).length;
+
+    // A PUP tag should cost real value; an August Q should barely register.
+    const pupMult = d.injMult(charbonnet);
+    const qMult = d.injMult(chase);
+    const healthyMult = d.injMult(gibbs);
+
+    // Overriding in place, as news breaks mid-draft.
+    d.state.config.injOverride = {};
+    const before = d.injOf(gibbs);
+    d.cycleInj(gibbs.id);                          // -> questionable
+    const afterOne = d.injOf(gibbs);
+    d.cycleInj(gibbs.id);                          // -> doubtful
+    const afterTwo = d.injOf(gibbs);
+    d.cycleInj(gibbs.id); d.cycleInj(gibbs.id);    // -> pup -> out
+    const afterFour = d.injOf(gibbs);
+    d.cycleInj(gibbs.id);                          // wraps back to clear
+    const afterFive = d.injOf(gibbs);
+
+    // Clearing a shipped designation must stick, not fall back to the dataset.
+    d.cycleInj(chase.id);
+    let hops = 0;
+    while (d.injOf(chase) && hops < 6) { d.cycleInj(chase.id); hops++; }
+    const chaseCleared = d.injOf(chase);
+
+    d.state.config.injOverride = {};
+    return { shipped, pupMult, qMult, healthyMult,
+             before, afterOne, afterTwo, afterFour, afterFive, chaseCleared };
+  });
+
+  check("injury designations shipped with the dataset", inj.shipped >= 18,
+    inj.shipped + " players");
+  check("a PUP tag costs real value", inj.pupMult < 0.7, "mult " + inj.pupMult);
+  check("an August Q barely moves the needle", inj.qMult > 0.9 && inj.qMult < 1,
+    "mult " + inj.qMult);
+  check("healthy players are unpenalised", inj.healthyMult === 1, "mult " + inj.healthyMult);
+  check("tapping a tag cycles through the designations",
+    inj.before === null && inj.afterOne === "questionable"
+    && inj.afterTwo === "doubtful" && inj.afterFour === "out" && inj.afterFive === null,
+    [inj.before, inj.afterOne, inj.afterTwo, inj.afterFour, inj.afterFive].join(" -> "));
+  check("clearing a shipped designation sticks", inj.chaseCleared === null,
+    "left as " + inj.chaseCleared);
+
+  const injUi = await page.evaluate(() => {
+    const d = window.__draft;
+    const row = document.querySelector("#boardBody tr[data-id]");
+    const id = row.getAttribute("data-id");
+    const drafted = d.state.picks.length;
+    // The tag sits inside the row, and the row drafts on click.
+    row.querySelector("[data-inj]").click();
+    return { draftedBefore: drafted, draftedAfter: d.state.picks.length,
+             status: d.injOf(window.PLAYER_DATA.players.find((p) => p.id === id)) };
+  });
+  check("tapping the tag does not draft the player",
+    injUi.draftedAfter === injUi.draftedBefore,
+    `${injUi.draftedBefore} -> ${injUi.draftedAfter}`);
+  check("tapping the tag did change its status", injUi.status !== null);
+  await page.evaluate(() => { window.__draft.state.config.injOverride = {}; });
+
   console.log("\n6. Undo and persistence");
   const undo = await page.evaluate(() => {
     const d = window.__draft;

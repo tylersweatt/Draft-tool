@@ -164,6 +164,17 @@ td.name{white-space:normal;min-width:150px}
   background:var(--raised);color:var(--ink-mute);border:1px solid var(--hairline);
 }
 .sbnpill.up{background:rgba(79,180,119,.15);color:#6FD097;border-color:rgba(79,180,119,.38)}
+.injpill{
+  display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;
+  padding:1px 4px;border-radius:3px;letter-spacing:.04em;margin-left:5px;
+  border:1px solid transparent;cursor:pointer;
+}
+.inj-questionable{background:rgba(232,177,76,.16);color:var(--warn);border-color:rgba(232,177,76,.3)}
+.inj-doubtful{background:rgba(228,87,46,.15);color:#F2825F;border-color:rgba(228,87,46,.35)}
+.inj-pup{background:rgba(228,87,46,.22);color:#F79070;border-color:rgba(228,87,46,.5)}
+.inj-out{background:rgba(228,87,46,.3);color:#FF9C7A;border-color:var(--crit)}
+.inj-none{background:transparent;color:var(--ink-mute);border-color:var(--hairline-soft);opacity:.45}
+tbody tr:hover .inj-none{opacity:1}
 .sbnpill.down{background:rgba(232,177,76,.13);color:var(--warn);border-color:rgba(232,177,76,.32)}
 .vorp-pos{color:var(--good);font-weight:600}
 .vorp-neg{color:var(--ink-mute)}
@@ -481,7 +492,7 @@ function defaultConfig(){
     /* JLFF, as listed in Yahoo's standings. That listing is not the draft
        order, so these are a starting point to be reordered at setup. */
     names:["BroadLeaf Brawlers", "Run CMC", "Illegal Flor-mation", "My TD's are Real", "Sir William", "Jack Goff", "La'Car Jackson", "ChatGP TD's", "My team is Boutte", "To Infinity and Bijan", "The Shivas", "Tush Push w/ Bush"],
-    passTd:6, adp:{}
+    passTd:6, adp:{}, injOverride:{}
   };
 }
 
@@ -687,6 +698,43 @@ function survival(p, targetOverall){
   return 1 - normCdf((targetOverall - mu) / sigma);
 }
 
+/* ---------------- injury status ---------------- */
+/* Preseason designations. Camp news moves daily, so whatever ships can be
+   overridden in place during the draft and the override wins. */
+var INJ_ORDER = ["questionable", "doubtful", "pup", "out"];
+var INJ_LABEL = { questionable:"Q", doubtful:"D", pup:"PUP", out:"OUT" };
+/* A Q in late August is mostly noise; a PUP designation costs four games. */
+var INJ_MULT = { questionable:0.97, doubtful:0.80, pup:0.55, out:0.30 };
+
+function injOf(p){
+  var o = state && state.config && state.config.injOverride;
+  if(o && Object.prototype.hasOwnProperty.call(o, p.id)) return o[p.id] || null;
+  return p.inj || null;
+}
+function injMult(p){
+  var st = injOf(p);
+  return st ? (INJ_MULT[st] || 1) : 1;
+}
+function cycleInj(id){
+  var p = BY_ID[id];
+  if(!p) return;
+  var cur = injOf(p);
+  var i = INJ_ORDER.indexOf(cur);
+  var next = (i + 1 >= INJ_ORDER.length) ? null : INJ_ORDER[i + 1];
+  if(!state.config.injOverride) state.config.injOverride = {};
+  state.config.injOverride[p.id] = next;
+  save(); renderAll();
+}
+function injBadge(p){
+  var st = injOf(p);
+  var title = st
+    ? (INJ_LABEL[st] + (p.injDetail ? " — " + p.injDetail : "") + " · click to change")
+    : "No injury designation · click to set one";
+  return '<button class="injpill inj-' + (st || "none") + '" data-inj="' + esc(p.id) + '" '
+    + 'title="' + esc(title) + '" aria-label="Injury status">'
+    + (st ? INJ_LABEL[st] : "\u2013") + '</button>';
+}
+
 /* ---------------- roster shape ---------------- */
 function fillRoster(players){
   var c = state.config, s = c.slots;
@@ -859,6 +907,15 @@ function recommend(available, forTeamIdx){
     if(p.bye && byeLoad[p.bye] >= 3){
       byePen = 7;
       reasons.push({t:(byeLoad[p.bye]+1)+" starters on bye "+p.bye, c:"warn"});
+    }
+
+    /* An injury discounts the player rather than removing him: a PUP stash can
+       still be worth a late pick. */
+    var im = injMult(p);
+    if(im < 1) mult *= im;
+    var istatus = injOf(p);
+    if(istatus && istatus !== "questionable"){
+      reasons.push({t: INJ_LABEL[istatus] + (p.injDetail ? "" : ""), c:"warn"});
     }
 
     /* Apply the multiplier to magnitude, not to the signed value. Below
@@ -1122,7 +1179,7 @@ function renderBoard(){
     var breaking = ts && p.tier === ts.tier && ts.left <= 2;
     return '<tr data-id="' + esc(p.id) + '" tabindex="0">'
       + '<td class="num pmeta col-rank">' + p.rank + '</td>'
-      + '<td class="name"><div class="pname">' + esc(p.name) + '</div>'
+      + '<td class="name"><div class="pname">' + esc(p.name) + injBadge(p) + '</div>'
         + '<div class="pmeta">' + esc(p.team || "FA") + ' · ' + p.pos + esc(String(p.posRank))
         + (adpOf(p) ? ' · adp ' + adpOf(p)
             : (calibratedPick(p) ? ' · adp ~' + Math.round(calibratedPick(p)) : "")) + '</div></td>'
@@ -1158,6 +1215,7 @@ function renderRecs(){
       + '<div class="rec-rk">' + (i+1) + '</div>'
       + '<div class="rec-body">'
         + '<div class="rec-top"><span class="rec-name">' + esc(r.p.name) + '</span>'
+        + (injOf(r.p) ? '<span class="injpill inj-' + injOf(r.p) + '">' + INJ_LABEL[injOf(r.p)] + '</span>' : "")
         + '<span class="chip chip-' + r.p.pos + '">' + r.p.pos + esc(String(r.p.posRank)) + '</span>'
         + '<span class="rec-score">' + (r.vorp > 0 ? "+" : "") + Math.round(r.vorp) + '</span></div>'
         + (r.reasons.length
@@ -1287,6 +1345,8 @@ function renderFoot(){
     + '<span>Rankings scraped <b>' + esc(m.scrapeDate) + '</b> · ' + esc(m.sources.rankings) + '</span>'
     + '<span>Byes from <b>' + esc(m.sources.schedule) + '</b></span>'
     + (m.expertSource ? '<span>Second-opinion tiers: <b>' + esc(m.expertSource) + '</b> (Full PPR)</span>' : "")
+    + (m.injCount ? '<span>Injury designations for <b>' + m.injCount + '</b> players as of <b>'
+        + esc(m.injCaptured || "") + '</b>; click a tag on the board to change one</span>' : "")
     + (m.adpCount ? '<span>Yahoo ADP for <b>' + m.adpCount + '</b> players ('
         + esc(m.adpColumn || "") + '); the rest are estimated from consensus rank, shown as <b>~</b></span>' : "")
     + '<span>Projected points are modeled from positional rank, not per-player stat projections.</span>';
@@ -1509,7 +1569,8 @@ function applySetup(){
   }
 
   state.config = { teams:teams, slot:slot, rounds:rounds, slots:slots,
-                   names:names, passTd:passTd, adp:adp };
+                   names:names, passTd:passTd, adp:adp,
+                   injOverride: state.config.injOverride || {} };
   state.picks = state.picks.filter(function(p){ return p.overall <= teams*rounds; });
   save(); closeSetup(); renderAll();
 }
@@ -1517,6 +1578,8 @@ function applySetup(){
 /* ---------------- events ---------------- */
 function bind(){
   el("boardBody").addEventListener("click", function(e){
+    var ib = e.target.closest("[data-inj]");
+    if(ib){ e.stopPropagation(); cycleInj(ib.getAttribute("data-inj")); return; }
     var tr = e.target.closest("tr[data-id]");
     if(tr) makePick(tr.getAttribute("data-id"));
   });
@@ -1612,6 +1675,7 @@ window.__draft = {
   isotonic: isotonic, adpAnchors: adpAnchors,
   moveTeam: moveTeam, renderTeamList: renderTeamList, creditedTeam: creditedTeam, ui: ui,
   toggleWake: toggleWake, wakeSupported: wakeSupported,
+  injOf: injOf, injMult: injMult, cycleInj: cycleInj,
   get setupOrder(){ return setupOrder; }, get setupMe(){ return setupMe; },
   totalPicks: totalPicks, picksByTeam: picksByTeam, projAtRank: projAtRank
 };

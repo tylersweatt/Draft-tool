@@ -178,6 +178,24 @@ def adp_keys(player):
     return keys
 
 
+def load_injuries():
+    """Preseason injury designations, keyed by normalized name.
+
+    Deliberately not sourced from nflverse roster status: that file reports
+    Ricky Pearsall as active while Yahoo has him on IR, so it does not carry
+    usable designations this time of year.
+    """
+    path = os.path.join(HERE, os.pardir, "data", "injuries.json")
+    if not os.path.exists(path):
+        return None, {}
+    with open(path) as f:
+        blob = json.load(f)
+    out = {}
+    for name, meta in blob.get("players", {}).items():
+        out[norm_name(name)] = meta
+    return blob, out
+
+
 def derive_byes(games):
     """True bye weeks from the real regular-season schedule."""
     played = defaultdict(set)
@@ -275,6 +293,10 @@ def main():
     if expert:
         print(f"  expert tiers: {len(expert)} players from {expert_source}", file=sys.stderr)
 
+    inj_meta, injuries = load_injuries()
+    if injuries:
+        print(f"  injuries: {len(injuries)} designations", file=sys.stderr)
+
     adp_meta, adp_table = load_yahoo_adp()
     if adp_table:
         print(f"  yahoo adp: {len(adp_table)} entries", file=sys.stderr)
@@ -354,12 +376,29 @@ def main():
             "fpPosRank": fp_pos_rank_by_id.get(pid),
             "proj": project(pos, pos_rank),
             "adp": None,
+            "inj": None,
+            "injSource": None,
+            "injDetail": None,
             "sbnTier": None,
             "sbnPosRank": None,
             "ecr1qb": sf.get("ecr_1qb"),
             "ecr2qb": sf.get("ecr_2qb"),
             "age": sf.get("age"),
         })
+
+    # Attach injury designations where a name matches.
+    inj_hits = 0
+    for p in players:
+        meta = injuries.get(norm_name(p["name"]))
+        if meta:
+            p["inj"] = meta.get("status")
+            p["injSource"] = meta.get("source")
+            p["injDetail"] = meta.get("detail")
+            inj_hits += 1
+    if injuries:
+        missed = len(injuries) - inj_hits
+        print(f"  matched {inj_hits} players to injury designations"
+              + (f" ({missed} unmatched)" if missed else ""), file=sys.stderr)
 
     # Attach Yahoo ADP where a name matches.
     adp_hits = 0
@@ -397,6 +436,9 @@ def main():
             "generatedAt": __import__("datetime").datetime.utcnow().isoformat() + "Z",
             "playerCount": len(players),
             "expertSource": expert_source,
+            "injCaptured": (inj_meta or {}).get("captured"),
+            "injCount": inj_hits if injuries else 0,
+            "injLevels": (inj_meta or {}).get("levels"),
             "adpSource": (adp_meta or {}).get("source"),
             "adpColumn": (adp_meta or {}).get("column"),
             "adpCaptured": (adp_meta or {}).get("captured"),

@@ -1,0 +1,36 @@
+{
+ "captured": "2026-08-28",
+ "note": "Preseason status. Week 1 is 2026-09-09, so gameday inactive lists do not exist yet; these are camp designations. Statuses read directly off the league's own Yahoo pages are marked source 'yahoo'. Items from reporting are marked 'news' and are the ones most worth re-checking before you draft, since camp status moves daily. nflverse roster data was deliberately not used here: it lists Ricky Pearsall as active while Yahoo has him on IR, so it is not reliable for designations this time of year.",
+ "levels": {
+  "questionable": "Tagged Q. In late August this is usually minor and often clears.",
+  "doubtful": "Tagged D. Unlikely for Week 1.",
+  "pup": "Physically Unable to Perform. Misses at least the first four games if he opens the season on it.",
+  "out": "On IR or otherwise ruled out."
+ },
+ "players": {
+  "Ja'Marr Chase": {"status": "questionable", "source": "yahoo"},
+  "Puka Nacua": {"status": "questionable", "source": "yahoo"},
+  "Christian McCaffrey": {"status": "questionable", "source": "yahoo"},
+  "Ashton Jeanty": {"status": "questionable", "source": "yahoo"},
+  "Kenneth Walker III": {"status": "questionable", "source": "yahoo"},
+  "Patrick Mahomes II": {"status": "questionable", "source": "yahoo"},
+  "James Conner": {"status": "questionable", "source": "yahoo"},
+  "Alvin Kamara": {"status": "questionable", "source": "yahoo"},
+  "Michael Pittman Jr.": {"status": "questionable", "source": "yahoo"},
+  "Rachaad White": {"status": "questionable", "source": "yahoo"},
+  "Kyle Monangai": {"status": "questionable", "source": "yahoo"},
+  "Josh Downs": {"status": "questionable", "source": "yahoo"},
+  "Jacory Croskey-Merritt": {"status": "questionable", "source": "yahoo"},
+  "Quentin Johnston": {"status": "questionable", "source": "yahoo"},
+  "De'Zhaun Stribling": {"status": "questionable", "source": "yahoo"},
+
+  "Jordyn Tyson": {"status": "doubtful", "source": "yahoo"},
+
+  "Ricky Pearsall": {"status": "out", "source": "yahoo", "detail": "On IR"},
+
+  "Zach Charbonnet": {"status": "pup", "source": "news", "detail": "Still on PUP after an ACL tear; a Week 1 return is considered unlikely"},
+  "Tucker Kraft": {"status": "questionable", "source": "news", "detail": "Off PUP and ramping up after a torn ACL; has a shot at Week 1"},
+  "George Kittle": {"status": "questionable", "source": "news", "detail": "Activated off PUP, ahead of schedule on the Achilles; legitimate chance at Week 1"},
+  "Malik Nabers": {"status": "questionable", "source": "news", "detail": "Limited in 11-on-11 without a non-contact jersey; on track for Week 1"}
+ }
+}

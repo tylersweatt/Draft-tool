@@ -88,6 +88,33 @@ than any other single setting. A six-point passing TD is worth roughly 60 points
 to an elite QB and 24 to a streamer, so it widens the gap between QBs instead of
 lifting them evenly — in simulation it moves the QB1 from round 2 into round 1.
 
+## Injuries
+
+Week 1 is 9 September, so gameday inactive lists do not exist yet — these are
+camp designations: **Q**, **D**, **PUP**, **OUT/IR**. They ship in
+`data/injuries.json` and show as a tag beside the player on the board.
+
+Status is not read from nflverse roster data. That file reports Ricky Pearsall
+as `ACT` while Yahoo has him on IR, so it does not carry usable designations at
+this point in the calendar. What ships instead is what could actually be
+verified: tags read off the league's own Yahoo pages (`source: yahoo`) and a
+few corroborated camp items (`source: news`), each labelled so the softer ones
+are obvious.
+
+An injury discounts a player rather than removing him, because a PUP stash can
+still be worth a late pick:
+
+| Tag | Multiplier | Why |
+| --- | --- | --- |
+| Q | 0.97 | A Q in late August is mostly noise and usually clears |
+| D | 0.80 | Unlikely for Week 1 |
+| PUP | 0.55 | Misses at least four games if he opens the season on it |
+| OUT / IR | 0.30 | Deep stash only |
+
+**Camp news moves daily, so every tag is editable in place.** Tap it on the
+board to cycle Q → D → PUP → OUT → clear. The override is saved with your draft
+and beats whatever shipped, including clearing a designation back to healthy.
+
 ## Yahoo ADP
 
 Yahoo's Draft Analysis page is login-only and unreachable from a build script,
@@ -137,6 +164,7 @@ Puka Nacua,3.5
 | Projected points | Positional rank mapped through Full-PPR expected-value curves | **Modeled** |
 | Second-opinion tiers | SB Nation Full-PPR tier sheet (`reference/`) | Real, hand-built by their analysts |
 | Yahoo ADP | The league's own Draft Analysis page (`data/yahoo_adp.json`) | Real where captured, **calibrated** elsewhere |
+| Injury status | Yahoo tags plus corroborated camp reporting (`data/injuries.json`) | Real as of the capture date, **editable in the app** |
 
 Projected points are not per-player statistical projections. They are a smooth
 function of positional rank, which is what VORP needs — the gap between the
@@ -170,6 +198,7 @@ scripts/build_data.py    fetches sources, models projections, assigns tiers
 scripts/parse_tiers.py   reads a tier-sheet PDF by glyph coordinates
 data/expert_tiers.json   parsed second-opinion tiers
 data/yahoo_adp.json      Yahoo average draft position
+data/injuries.json       preseason injury designations
 reference/               source tier sheets
 scripts/bundle.py        inlines everything into dist/draft-board.html
 scripts/simulate_draft.js headless full-draft verification

@@ -43,7 +43,14 @@ team, so renaming or reordering does not move them.
 Everything persists to the browser's local storage, so a refresh or a closed
 tab mid-draft doesn't lose the board.
 
-**On a phone:** open the published page and add it to your home screen so it
+**On a phone:** every editable field renders at 16px on touch devices. iOS
+Safari force-zooms the page whenever a focused field's text is smaller than
+that, which made tapping the search box mid-draft jarring. Pinning
+`maximum-scale` in the viewport meta would also stop it, but by disabling
+pinch-zoom for everyone, so the type size is raised instead. Desktop keeps the
+denser sizing.
+
+Open the published page and add it to your home screen so it
 opens full-screen without browser chrome. Hit **Keep awake** in the header to
 hold a screen wake lock for the length of the draft — a phone that sleeps every
 thirty seconds is unusable when picks are thirty seconds apart. The lock is

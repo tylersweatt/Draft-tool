@@ -354,6 +354,25 @@ tr.gone .pname{text-decoration:line-through}
   td.name{min-width:118px}
   .teamsgrid{grid-template-columns:1fr 1fr}
 }
+
+/* ---------- touch input sizing ---------- */
+/* iOS Safari force-zooms the page whenever a focused field renders text under
+   16px, which is every field here at the denser desktop sizes. Raising them on
+   touch devices removes the cause. The alternative — pinning maximum-scale in
+   the viewport meta — also stops the zoom, but by disabling pinch-zoom for
+   everyone, so it is not used. This block sits last so it wins on equal
+   specificity. */
+@media (pointer: coarse){
+  input, select, textarea,
+  .search,
+  select.sortsel,
+  .fld input, .fld select, .fld textarea,
+  .tname,
+  .clock-pick{ font-size:16px }
+  /* 16px text needs a little more room to sit in. */
+  .tname{ padding:5px 6px }
+  .fld textarea{ line-height:1.35 }
+}
 </style>
 </head>
 <body>

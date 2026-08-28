@@ -533,6 +533,42 @@ function check(name, cond, detail) {
 
   check("no JavaScript errors", errors.length === 0, errors.slice(0, 3).join(" | "));
 
+  console.log("\n8. Touch input sizing");
+  // iOS Safari force-zooms the page when a focused field's text is under 16px.
+  // Verified on a touch context, where (pointer: coarse) matches.
+  const touch = await browser.newContext({
+    viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true,
+  });
+  const tp = await touch.newPage();
+  await tp.goto(URL);
+  await tp.waitForFunction(() => window.__draft && window.__draft.state);
+  const sizes = await tp.evaluate(() => {
+    const px = (el) => (el ? parseFloat(getComputedStyle(el).fontSize) : null);
+    const out = { coarse: matchMedia("(pointer: coarse)").matches, fields: {} };
+    out.fields.teams = px(document.getElementById("cfgTeams"));
+    out.fields.rounds = px(document.getElementById("cfgRounds"));
+    out.fields.teamName = px(document.querySelector("#teamList .tname"));
+    out.fields.passTd = px(document.getElementById("cfgPassTd"));
+    out.fields.adp = px(document.getElementById("cfgAdp"));
+    out.fields.rosterSlot = px(document.getElementById("slot_QB"));
+    document.getElementById("cfgStart").click();
+    out.fields.search = px(document.getElementById("search"));
+    out.fields.sort = px(document.getElementById("sortSel"));
+    out.sideways = document.documentElement.scrollWidth > window.innerWidth + 1;
+    return out;
+  });
+  const tooSmall = Object.keys(sizes.fields).filter((k) => !(sizes.fields[k] >= 16));
+  check("touch context reports a coarse pointer", sizes.coarse === true);
+  check("no editable field is under 16px on touch", tooSmall.length === 0,
+    tooSmall.map((k) => `${k}:${sizes.fields[k]}px`).join(", "));
+  check("larger text does not push the page sideways", sizes.sideways === false);
+
+  // Desktop should keep the denser type rather than inheriting the touch sizes.
+  const deskSize = await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.getElementById("search")).fontSize));
+  check("desktop keeps its compact field type", deskSize < 16, deskSize + "px");
+  await touch.close();
+
   await browser.close();
 
   console.log("\n" + (failures === 0
